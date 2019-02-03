@@ -6,8 +6,8 @@
 
 import typing
 
-import ExtrudeCommand
-import TravelCommand
+from . import ExtrudeCommand
+from . import TravelCommand
 
 def parse(element) -> typing.List[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand]]:
 	"""

@@ -13,8 +13,8 @@ import UM.Mesh.MeshReader #The class we're extending.
 import UM.MimeTypeDatabase #Register the SVG MIME type.
 import xml.etree.ElementTree #To read SVG files.
 
-import Parse #To parse the SVG.
-import WriteGCode #To serialise the commands as g-code.
+from . import Parse #To parse the SVG.
+from . import WriteGCode #To serialise the commands as g-code.
 
 class SVGToolpathReader(UM.Mesh.MeshReader.MeshReader):
 	"""
