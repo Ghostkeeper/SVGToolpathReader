@@ -40,7 +40,7 @@ class SVGToolpathReader(UM.Mesh.MeshReader.MeshReader):
 		"""
 		#Parse the document and generate its g-code.
 		document = xml.etree.ElementTree.parse(file_name)
-		commands = Parse.parse(document)
+		commands = Parse.parse(document.getroot())
 		gcode, layer_data_builder = WriteGCode.write_gcode(commands)
 
 		scene_node = cura.Scene.CuraSceneNode.CuraSceneNode()
