@@ -5,14 +5,31 @@
 #You should have received a copy of the GNU Affero General Public License along with this plug-in. If not, see <https://gnu.org/licenses/>.
 
 import typing
+import UM.Logger #To log parse errors and warnings.
 
 from . import ExtrudeCommand
 from . import TravelCommand
 
-def parse(element) -> typing.List[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand]]:
+def parse(element) -> typing.Iterable[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand]]:
 	"""
 	Parses an XML element and returns the paths required to print said element.
+
+	This function delegates the parsing to the correct specialist function.
 	:param element: The element to print.
-	:return: A list of commands necessary to print this element.
+	:return: A sequence of commands necessary to print this element.
 	"""
-	return list() #TODO: Implement.
+	if element.tag == "svg":
+		return parseSvg(element)
+	else:
+		UM.Logger.Logger.log("w", "Unknown element {element_tag}.".format(element_tag=element.tag))
+		return [] #SVG specifies that you should ignore any unknown elements.
+
+def parseSvg(element) -> typing.Iterable[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand]]:
+	"""
+	Parses the SVG element, which basically concatenates all commands put forth
+	by its children.
+	:param element: The SVG element.
+	:return: A sequence of commands necessary to print this element.
+	"""
+	for child in element:
+		yield parse(child)
