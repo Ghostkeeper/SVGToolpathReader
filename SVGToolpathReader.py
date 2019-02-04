@@ -46,7 +46,7 @@ class SVGToolpathReader(UM.Mesh.MeshReader.MeshReader):
 		scene_node = cura.Scene.CuraSceneNode.CuraSceneNode()
 
 		#Build the layer data decorator.
-		material_colour_map = numpy.zeros(8, 4)
+		material_colour_map = numpy.zeros((8, 4), dtype=numpy.float32)
 		material_colour_map[0, :] = [0.0, 0.7, 0.9, 1.0]
 		material_colour_map[1, :] = [0.7, 0.9, 0.0, 1.0]
 		material_colour_map[2, :] = [0.9, 0.0, 0.7, 1.0]
