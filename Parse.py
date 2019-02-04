@@ -10,7 +10,7 @@ import UM.Logger #To log parse errors and warnings.
 from . import ExtrudeCommand
 from . import TravelCommand
 
-def parse(element) -> typing.Iterable[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand]]:
+def parse(element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 	"""
 	Parses an XML element and returns the paths required to print said element.
 
@@ -18,13 +18,15 @@ def parse(element) -> typing.Iterable[typing.Union[TravelCommand.TravelCommand, 
 	:param element: The element to print.
 	:return: A sequence of commands necessary to print this element.
 	"""
+	if element.tag == "rect":
+		yield parseRect(element)
 	if element.tag == "svg":
-		return parseSvg(element)
+		yield parseSvg(element)
 	else:
 		UM.Logger.Logger.log("w", "Unknown element {element_tag}.".format(element_tag=element.tag))
-		return [] #SVG specifies that you should ignore any unknown elements.
+		yield [] #SVG specifies that you should ignore any unknown elements.
 
-def parseSvg(element) -> typing.Iterable[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand]]:
+def parseSvg(element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 	"""
 	Parses the SVG element, which basically concatenates all commands put forth
 	by its children.
@@ -33,3 +35,39 @@ def parseSvg(element) -> typing.Iterable[typing.Union[TravelCommand.TravelComman
 	"""
 	for child in element:
 		yield parse(child)
+
+def parseRect(element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
+	"""
+	Parses the Rect element.
+	:param element: The Rect element.
+	:return: A sequence of commands necessary to print this element.
+	"""
+	x = tryFloat(element.attrib, "x", 0)
+	y = tryFloat(element.attrib, "y", 0)
+	#TODO: Implement rx and ry.
+	width = tryFloat(element.attrib, "width", 0)
+	height = tryFloat(element.attrib, "height", 0)
+
+	if width == 0 or height == 0:
+		return #No surface, no print!
+
+	yield TravelCommand.TravelCommand(x=x, y=y)
+	yield ExtrudeCommand.ExtrudeCommand(x=x + width, y=y)
+	yield ExtrudeCommand.ExtrudeCommand(x=x + width, y=y + width)
+	yield ExtrudeCommand.ExtrudeCommand(x=x, y=y + width)
+	yield ExtrudeCommand.ExtrudeCommand(x=x, y=y)
+
+def tryFloat(dictionary, attribute, default: float) -> float:
+	"""
+	Parses an attribute as float, if possible.
+
+	If impossible or missing, this returns the default.
+	:param dictionary: The attributes dictionary to get the attribute from.
+	:param attribute: The attribute to get from the dictionary.
+	:param default: The default value for this attribute.
+	:return: A floating point number that was in the attribute, or the default.
+	"""
+	try:
+		return float(dictionary.get(attribute, default))
+	except ValueError: #Not parsable as float.
+		return default
