@@ -13,9 +13,11 @@ class TravelCommand:
 	transformations on SVG elements correctly.
 	"""
 
-	def __init__(self):
+	def __init__(self, x=0, y=0):
 		"""
 		Initialises defaults for all fields.
+		:param x: The X position to travel to.
+		:param y: The Y position to travel to.
 		"""
-		self.x = 0
-		self.y = 0
+		self.x = x
+		self.y = y

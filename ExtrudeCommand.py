@@ -13,10 +13,12 @@ class ExtrudeCommand:
 	transformations on SVG elements correctly.
 	"""
 
-	def __init__(self):
+	def __init__(self, x=0, y=0, line_width=0.35):
 		"""
 		Initialises defaults for all fields.
+		:param x: The X position to extrude towards.
+		:param y: The Y position to extrude towards.
 		"""
-		self.x = 0
-		self.y = 0
-		self.line_width = 0.35
+		self.x = x
+		self.y = y
+		self.line_width = line_width
