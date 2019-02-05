@@ -62,7 +62,7 @@ class SVGToolpathReader(UM.Mesh.MeshReader.MeshReader):
 
 		#Store the g-code.
 		gcode_list_decorator = cura.Scene.GCodeListDecorator.GCodeListDecorator()
-		gcode_list = gcode.split("\n")
+		gcode_list = [line + "\n" for line in gcode.split("\n")] #Don't consume the newlines. Add them back.
 		gcode_list_decorator.setGCodeList(gcode_list)
 		scene_node.addDecorator(gcode_list_decorator)
 		active_build_plate_id = cura.CuraApplication.CuraApplication.getInstance().getMultiBuildPlateModel().activeBuildPlate
