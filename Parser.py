@@ -15,6 +15,8 @@ class Parser:
 	Parses an SVG file.
 	"""
 
+	_namespace = "{http://www.w3.org/2000/svg}" #Namespace prefix for all SVG elements.
+
 	def parse(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 		"""
 		Parses an XML element and returns the paths required to print said element.
@@ -23,9 +25,9 @@ class Parser:
 		:param element: The element to print.
 		:return: A sequence of commands necessary to print this element.
 		"""
-		if element.tag == "rect":
+		if element.tag == self._namespace + "rect":
 			yield self.parseRect(element)
-		if element.tag == "svg":
+		if element.tag == self._namespace + "svg":
 			yield self.parseSvg(element)
 		else:
 			UM.Logger.Logger.log("w", "Unknown element {element_tag}.".format(element_tag=element.tag))
