@@ -24,7 +24,7 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 	extruder_number = cura.Settings.ExtruderManager.ExtruderManager.getInstance().activeExtruderIndex
 	extruder_stack = cura.Settings.ExtruderManager.ExtruderManager.getInstance().getActiveExtruderStack()
 	layer_height_0 = extruder_stack.getProperty("layer_height_0", "value")
-	material_flow = extruder_stack.getProperty("material_flow", "value")
+	material_flow = extruder_stack.getProperty("material_flow", "value") / 100
 	material_diameter = extruder_stack.getProperty("material_diameter", "value")
 	machine_gcode_flavor = extruder_stack.getProperty("machine_gcode_flavor", "value") #Necessary to track if we need to extrude volumetric or lengthwise.
 	is_volumetric = machine_gcode_flavor in {"UltiGCode", "RepRap (Volumetric)"}
@@ -59,7 +59,7 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 		elif isinstance(command, ExtrudeCommand.ExtrudeCommand):
 			distance = math.sqrt((command.x - x) * (command.x - x) + (command.y - y) * (command.y - y))
 			mm3 = distance * layer_height_0 * command.line_width * material_flow
-			delta_e = mm3 if is_volumetric else mm3 * math.pi * material_diameter * material_diameter / 4
+			delta_e = mm3 if is_volumetric else (mm3 / (math.pi * material_diameter * material_diameter / 4))
 
 			gcode = "G1"
 			if command.x != x:
