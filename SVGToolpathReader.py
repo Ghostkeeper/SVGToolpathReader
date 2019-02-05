@@ -13,7 +13,7 @@ import UM.Mesh.MeshReader #The class we're extending.
 import UM.MimeTypeDatabase #Register the SVG MIME type.
 import xml.etree.ElementTree #To read SVG files.
 
-from . import Parse #To parse the SVG.
+from . import Parser #To parse the SVG.
 from . import WriteGCode #To serialise the commands as g-code.
 
 class SVGToolpathReader(UM.Mesh.MeshReader.MeshReader):
@@ -40,7 +40,7 @@ class SVGToolpathReader(UM.Mesh.MeshReader.MeshReader):
 		"""
 		#Parse the document and generate its g-code.
 		document = xml.etree.ElementTree.parse(file_name)
-		commands = Parse.parse(document.getroot())
+		commands = Parser.Parser().parse(document.getroot())
 		gcode, layer_data_builder = WriteGCode.write_gcode(commands)
 
 		scene_node = cura.Scene.CuraSceneNode.CuraSceneNode()
