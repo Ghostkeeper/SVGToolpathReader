@@ -26,9 +26,9 @@ class Parser:
 		:return: A sequence of commands necessary to print this element.
 		"""
 		if element.tag == self._namespace + "rect":
-			yield self.parseRect(element)
+			yield from self.parseRect(element)
 		if element.tag == self._namespace + "svg":
-			yield self.parseSvg(element)
+			yield from self.parseSvg(element)
 		else:
 			UM.Logger.Logger.log("w", "Unknown element {element_tag}.".format(element_tag=element.tag))
 			#SVG specifies that you should ignore any unknown elements.
@@ -41,7 +41,7 @@ class Parser:
 		:return: A sequence of commands necessary to print this element.
 		"""
 		for child in element:
-			yield self.parse(child)
+			yield from self.parse(child)
 
 	def parseRect(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 		"""
