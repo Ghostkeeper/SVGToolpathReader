@@ -29,7 +29,7 @@ class Parser:
 			yield self.parseSvg(element)
 		else:
 			UM.Logger.Logger.log("w", "Unknown element {element_tag}.".format(element_tag=element.tag))
-			yield [] #SVG specifies that you should ignore any unknown elements.
+			#SVG specifies that you should ignore any unknown elements.
 
 	def parseSvg(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 		"""
