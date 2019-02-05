@@ -27,7 +27,7 @@ class Parser:
 		"""
 		if element.tag == self._namespace + "rect":
 			yield from self.parseRect(element)
-		if element.tag == self._namespace + "svg":
+		elif element.tag == self._namespace + "svg":
 			yield from self.parseSvg(element)
 		else:
 			UM.Logger.Logger.log("w", "Unknown element {element_tag}.".format(element_tag=element.tag))
