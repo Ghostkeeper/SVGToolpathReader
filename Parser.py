@@ -60,8 +60,8 @@ class Parser:
 
 		yield TravelCommand.TravelCommand(x=x, y=y)
 		yield ExtrudeCommand.ExtrudeCommand(x=x + width, y=y)
-		yield ExtrudeCommand.ExtrudeCommand(x=x + width, y=y + width)
-		yield ExtrudeCommand.ExtrudeCommand(x=x, y=y + width)
+		yield ExtrudeCommand.ExtrudeCommand(x=x + width, y=y + height)
+		yield ExtrudeCommand.ExtrudeCommand(x=x, y=y + height)
 		yield ExtrudeCommand.ExtrudeCommand(x=x, y=y)
 
 	def tryFloat(self, dictionary, attribute, default: float) -> float:
