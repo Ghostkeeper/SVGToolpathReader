@@ -76,5 +76,6 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 				gcode += " E{e}".format(e=e)
 		gcodes.append(gcode)
 
-	UM.Logger.Logger.log("d", "\n".join(gcodes))
-	return "\n".join(gcodes), cura.LayerDataBuilder.LayerDataBuilder() #TODO: Implement.
+	#TODO: Create polygons on the current layer...
+
+	return "\n".join(gcodes), builder
