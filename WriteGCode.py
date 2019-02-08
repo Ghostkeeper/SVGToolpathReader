@@ -27,7 +27,10 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 	layer_height_0 = extruder_stack.getProperty("layer_height_0", "value")
 	material_flow = extruder_stack.getProperty("material_flow", "value") / 100
 	material_diameter = extruder_stack.getProperty("material_diameter", "value")
+	machine_center_is_zero = extruder_stack.getProperty("machine_center_is_zero", "value") #Necessary to know if we need to offset the coordinates for layer view.
 	machine_gcode_flavor = extruder_stack.getProperty("machine_gcode_flavor", "value") #Necessary to track if we need to extrude volumetric or lengthwise.
+	machine_width = extruder_stack.getProperty("machine_width", "value")
+	machine_depth = extruder_stack.getProperty("machine_depth", "value")
 	is_volumetric = machine_gcode_flavor in {"UltiGCode", "RepRap (Volumetric)"}
 	speed_travel = extruder_stack.getProperty("speed_travel", "value") * 60 #Convert to mm/min for g-code.
 	speed_print = extruder_stack.getProperty("speed_wall_0", "value") * 60 #Convert to mm/min for g-code.
@@ -53,7 +56,10 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 			if speed_travel * 60 != f:
 				f = speed_travel * 60
 				gcode += " F{f}".format(f=f)
-			path.append([x, y, 0])
+			if not machine_center_is_zero:
+				path.append([x - machine_width / 2, -y + machine_depth / 2, 0])
+			else:
+				path.append([x, -y, 0])
 		elif isinstance(command, ExtrudeCommand.ExtrudeCommand):
 			distance = math.sqrt((command.x - x) * (command.x - x) + (command.y - y) * (command.y - y))
 			mm3 = distance * layer_height_0 * command.line_width * material_flow
@@ -72,7 +78,10 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 			if delta_e != 0:
 				e += delta_e
 				gcode += " E{e}".format(e=e)
-			path.append([x, y, command.line_width])
+			if not machine_center_is_zero:
+				path.append([x - machine_width / 2, -y + machine_depth / 2, command.line_width])
+			else:
+				path.append([x, -y, command.line_width])
 		gcodes.append(gcode)
 
 	builder = cura.LayerDataBuilder.LayerDataBuilder()
