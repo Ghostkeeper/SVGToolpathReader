@@ -25,12 +25,15 @@ class Parser:
 		:param element: The element to print.
 		:return: A sequence of commands necessary to print this element.
 		"""
-		if element.tag == self._namespace + "rect":
+		if not element.tag.startswith(self._namespace):
+			return #Ignore elements not in the SVG namespace.
+		tag = element.tag[len(self._namespace):]
+		if tag == "rect":
 			yield from self.parseRect(element)
-		elif element.tag == self._namespace + "svg":
+		elif tag == "svg":
 			yield from self.parseSvg(element)
 		else:
-			UM.Logger.Logger.log("w", "Unknown element {element_tag}.".format(element_tag=element.tag))
+			UM.Logger.Logger.log("w", "Unknown element {element_tag}.".format(element_tag=tag))
 			#SVG specifies that you should ignore any unknown elements.
 
 	def parseSvg(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
