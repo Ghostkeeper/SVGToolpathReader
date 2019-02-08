@@ -46,6 +46,12 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 	for command in commands:
 		gcode = ";Unknown command of type {typename}!".format(typename=command.__class__.__name__)
 		if isinstance(command, TravelCommand.TravelCommand):
+			#Since SVG has positive Y going down but g-code has positive Y going up, we need to invert the Y axis.
+			if not machine_center_is_zero:
+				command.y = machine_depth - command.y
+			else:
+				command.y = -command.y
+
 			gcode = "G0"
 			if command.x != x:
 				x = command.x
@@ -61,6 +67,12 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 			else:
 				path.append([x, -y, 0])
 		elif isinstance(command, ExtrudeCommand.ExtrudeCommand):
+			#Since SVG has positive Y going down but g-code has positive Y going up, we need to invert the Y axis.
+			if not machine_center_is_zero:
+				command.y = machine_depth - command.y
+			else:
+				command.y = -command.y
+
 			distance = math.sqrt((command.x - x) * (command.x - x) + (command.y - y) * (command.y - y))
 			mm3 = distance * layer_height_0 * command.line_width * material_flow
 			delta_e = mm3 if is_volumetric else (mm3 / (math.pi * material_diameter * material_diameter / 4))
