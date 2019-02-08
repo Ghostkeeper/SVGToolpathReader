@@ -6,9 +6,10 @@
 
 import cura.Settings.ExtruderManager #To get settings from the active extruder.
 import cura.LayerDataBuilder #One of the results of the function.
+import cura.LayerPolygon #Filling layer data.
 import math
+import numpy #To create the Polygon data.
 import typing
-import UM.Logger
 
 from . import ExtrudeCommand #To differentiate between the command types.
 from . import TravelCommand #To differentiate between the command types.
@@ -31,11 +32,7 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 	speed_travel = extruder_stack.getProperty("speed_travel", "value") * 60 #Convert to mm/min for g-code.
 	speed_print = extruder_stack.getProperty("speed_wall_0", "value") * 60 #Convert to mm/min for g-code.
 
-	builder = cura.LayerDataBuilder.LayerDataBuilder()
-	builder.addLayer(0)
-	layer = builder.getLayer(0)
-	layer.setHeight(0)
-	layer.setThickness(layer_height_0)
+	path = []
 	gcodes = []
 
 	x = 0
@@ -53,9 +50,10 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 			if command.y != y:
 				y = command.y
 				gcode += " Y{y}".format(y=y)
-			if speed_travel != f:
-				f = speed_travel
+			if speed_travel * 60 != f:
+				f = speed_travel * 60
 				gcode += " F{f}".format(f=f)
+			path.append([x, y, 0])
 		elif isinstance(command, ExtrudeCommand.ExtrudeCommand):
 			distance = math.sqrt((command.x - x) * (command.x - x) + (command.y - y) * (command.y - y))
 			mm3 = distance * layer_height_0 * command.line_width * material_flow
@@ -68,14 +66,42 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 			if command.y != y:
 				y = command.y
 				gcode += " Y{y}".format(y=y)
-			if speed_print != f:
-				f = speed_print
+			if speed_print * 60 != f:
+				f = speed_print * 60
 				gcode += " F{f}".format(f=f)
 			if delta_e != 0:
 				e += delta_e
 				gcode += " E{e}".format(e=e)
+			path.append([x, y, command.line_width])
 		gcodes.append(gcode)
 
-	#TODO: Create polygons on the current layer...
+	builder = cura.LayerDataBuilder.LayerDataBuilder()
+	builder.addLayer(0)
+	layer = builder.getLayer(0)
+	layer.setHeight(0)
+	layer.setThickness(layer_height_0)
+
+	coordinates = numpy.empty((len(path), 3), numpy.float32)
+	types = numpy.empty((len(path) - 1, 1), numpy.int32)
+	widths = numpy.empty((len(path) - 1, 1), numpy.float32)
+	thicknesses = numpy.empty((len(path) - 1, 1), numpy.float32)
+	feedrates = numpy.empty((len(path) - 1, 1), numpy.float32)
+	for i, point in enumerate(path):
+		coordinates[i, :] = [point[0], layer_height_0, point[1]]
+		if i > 0:
+			if point[2] == 0:
+				feedrates[i - 1] = speed_travel
+				types[i - 1] = cura.LayerPolygon.LayerPolygon.MoveCombingType
+				widths[i - 1] = 0.1
+				thicknesses[i - 1] = 0.0
+			else:
+				feedrates[i - 1] = speed_print
+				types[i - 1] = cura.LayerPolygon.LayerPolygon.Inset0Type
+				widths[i - 1] = point[2]
+				thicknesses[i - 1] = layer_height_0
+
+	polygon = cura.LayerPolygon.LayerPolygon(extruder_number, types, coordinates, widths, thicknesses, feedrates)
+	polygon.buildCache()
+	layer.polygons.append(polygon)
 
 	return "\n".join(gcodes), builder
