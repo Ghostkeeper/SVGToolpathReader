@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
-	<rect x="10" y="15" width="30" height="20" />
+	<rect x="10" y="15" rx="2" ry="2" width="30" height="20" />
 </svg>
