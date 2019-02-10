@@ -166,13 +166,13 @@ class Parser:
 
 		yield TravelCommand.TravelCommand(x=x + rx, y=y)
 		yield ExtrudeCommand.ExtrudeCommand(x=x + width - rx, y=y)
-		yield from self.extrude_arc(x + width - rx, y, rx, ry, 0, False, False, x + width, y + ry)
+		yield from self.extrude_arc(x + width - rx, y, rx, ry, 0, False, True, x + width, y + ry)
 		yield ExtrudeCommand.ExtrudeCommand(x=x + width, y=y + height - ry)
-		yield from self.extrude_arc(x + width, y + height - ry, rx, ry, 0, False, False, x + width - rx, y + height)
+		yield from self.extrude_arc(x + width, y + height - ry, rx, ry, 0, False, True, x + width - rx, y + height)
 		yield ExtrudeCommand.ExtrudeCommand(x=x + rx, y=y + height)
-		yield from self.extrude_arc(x + rx, y + height, rx, ry, 0, False, False, x, y + height - ry)
+		yield from self.extrude_arc(x + rx, y + height, rx, ry, 0, False, True, x, y + height - ry)
 		yield ExtrudeCommand.ExtrudeCommand(x=x, y=y + ry)
-		yield from self.extrude_arc(x, y + ry, rx, ry, 0, False, False, x + rx, y)
+		yield from self.extrude_arc(x, y + ry, rx, ry, 0, False, True, x + rx, y)
 
 	def tryFloat(self, dictionary, attribute, default: float) -> float:
 		"""
