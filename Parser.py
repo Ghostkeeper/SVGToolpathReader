@@ -124,7 +124,8 @@ class Parser:
 
 	def parse(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 		"""
-		Parses an XML element and returns the paths required to print said element.
+		Parses an XML element and returns the paths required to print said
+		element.
 
 		This function delegates the parsing to the correct specialist function.
 		:param element: The element to print.
@@ -134,14 +135,14 @@ class Parser:
 			return #Ignore elements not in the SVG namespace.
 		tag = element.tag[len(self._namespace):]
 		if tag == "rect":
-			yield from self.parseRect(element)
+			yield from self.parse_rect(element)
 		elif tag == "svg":
-			yield from self.parseSvg(element)
+			yield from self.parse_svg(element)
 		else:
 			UM.Logger.Logger.log("w", "Unknown element {element_tag}.".format(element_tag=tag))
 			#SVG specifies that you should ignore any unknown elements.
 
-	def parseSvg(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
+	def parse_svg(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 		"""
 		Parses the SVG element, which basically concatenates all commands put forth
 		by its children.
@@ -151,18 +152,18 @@ class Parser:
 		for child in element:
 			yield from self.parse(child)
 
-	def parseRect(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
+	def parse_rect(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 		"""
 		Parses the Rect element.
 		:param element: The Rect element.
 		:return: A sequence of commands necessary to print this element.
 		"""
-		x = self.tryFloat(element.attrib, "x", 0)
-		y = self.tryFloat(element.attrib, "y", 0)
-		rx = self.tryFloat(element.attrib, "rx", 0)
-		ry = self.tryFloat(element.attrib, "ry", 0)
-		width = self.tryFloat(element.attrib, "width", 0)
-		height = self.tryFloat(element.attrib, "height", 0)
+		x = self.try_float(element.attrib, "x", 0)
+		y = self.try_float(element.attrib, "y", 0)
+		rx = self.try_float(element.attrib, "rx", 0)
+		ry = self.try_float(element.attrib, "ry", 0)
+		width = self.try_float(element.attrib, "width", 0)
+		height = self.try_float(element.attrib, "height", 0)
 
 		if width == 0 or height == 0:
 			return #No surface, no print!
@@ -179,7 +180,9 @@ class Parser:
 		yield ExtrudeCommand.ExtrudeCommand(x=x, y=y + ry)
 		yield from self.extrude_arc(x, y + ry, rx, ry, 0, False, True, x + rx, y)
 
-	def tryFloat(self, dictionary, attribute, default: float) -> float:
+	def transform
+
+	def try_float(self, dictionary, attribute, default: float) -> float:
 		"""
 		Parses an attribute as float, if possible.
 
