@@ -89,7 +89,7 @@ class Parser:
 		delta_angle %= math.pi * 2
 		if not sweep_flag:
 			delta_angle -= math.pi * 2
-		end_angle = (start_angle + delta_angle) % (math.pi * 2)
+		end_angle = start_angle + delta_angle
 
 		#Use Newton's method to find segments of the required length along the ellipsis, basically using binary search.
 		current_x = start_x
