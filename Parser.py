@@ -100,6 +100,7 @@ class Parser:
 			current_error = self.resolution
 			new_x = current_x
 			new_y = current_y
+			new_angle = lower_angle
 			while abs(current_error) > 0.001: #Continue until 1 micron error.
 				new_angle = (lower_angle + upper_angle) / 2
 				new_x = math.cos(new_angle) * rx
@@ -109,8 +110,8 @@ class Parser:
 				new_y = sin_rotation * new_x_temp + cos_rotation * new_y
 				new_x += cx
 				new_y += cy
-				current_step_2 = (new_x - current_x) * (new_x - current_x) + (new_y - current_y) * (new_y - current_y)
-				current_error = math.sqrt(current_step_2) - self.resolution
+				current_step = math.sqrt((new_x - current_x) * (new_x - current_x) + (new_y - current_y) * (new_y - current_y))
+				current_error = current_step - self.resolution
 				if current_error > 0: #Step is too far.
 					upper_angle = new_angle
 				else: #Step is not far enough.
@@ -118,6 +119,7 @@ class Parser:
 			current_x = new_x
 			current_y = new_y
 			yield ExtrudeCommand.ExtrudeCommand(current_x, current_y, self.default_line_width)
+			start_angle = new_angle
 		yield ExtrudeCommand.ExtrudeCommand(end_x, end_y, self.default_line_width)
 
 	def parse(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
