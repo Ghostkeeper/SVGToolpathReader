@@ -43,12 +43,15 @@ class Parser:
 		:param end_y: The Y coordinate of the final position to end up at.
 		:return: A sequence of extrude commands that follow the arc.
 		"""
+		if start_x == end_x and start_y == end_y: #Nothing to draw.
+			return
 		rx = abs(rx)
 		ry = abs(ry)
 		if rx == 0 or ry == 0: #Invalid radius. Skip this arc.
 			yield ExtrudeCommand.ExtrudeCommand(end_x, end_y, self.default_line_width)
 			return
-		if start_x == end_x and start_y == end_y: #Nothing to draw.
+		if (end_x - start_x) * (end_x - start_x) + (end_y - start_y) * (end_y - start_y) <= self.resolution * self.resolution: #Too small to fit with higher resolution.
+			yield ExtrudeCommand.ExtrudeCommand(end_x, end_y, self.default_line_width)
 			return
 
 		#Implementation of https://www.w3.org/TR/SVG/implnote.html#ArcImplementationNotes to find centre of ellipse.
