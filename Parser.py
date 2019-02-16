@@ -161,9 +161,9 @@ class Parser:
 		:param element: The element to print.
 		:return: A sequence of commands necessary to print this element.
 		"""
-		if not element.tag.startswith(self._namespace):
+		if not element.tag.lower().startswith(self._namespace):
 			return #Ignore elements not in the SVG namespace.
-		tag = element.tag[len(self._namespace):]
+		tag = element.tag[len(self._namespace):].lower()
 		if tag == "circle":
 			yield from self.parse_circle(element)
 		if tag == "rect":
