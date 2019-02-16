@@ -164,6 +164,8 @@ class Parser:
 		if not element.tag.startswith(self._namespace):
 			return #Ignore elements not in the SVG namespace.
 		tag = element.tag[len(self._namespace):]
+		if tag == "circle":
+			yield from self.parse_circle(element)
 		if tag == "rect":
 			yield from self.parse_rect(element)
 		elif tag == "svg":
@@ -172,17 +174,24 @@ class Parser:
 			UM.Logger.Logger.log("w", "Unknown element {element_tag}.".format(element_tag=tag))
 			#SVG specifies that you should ignore any unknown elements.
 
-	def parse_svg(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
+	def parse_circle(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 		"""
-		Parses the SVG element, which basically concatenates all commands put forth
-		by its children.
-		:param element: The SVG element.
+		Parses the Circle element.
+		:param element: The Circle element.
 		:return: A sequence of commands necessary to print this element.
 		"""
-		extruder_stack = cura.Settings.ExtruderManager.ExtruderManager.getInstance().getActiveExtruderStack()
-		default_line_width = extruder_stack.getProperty("wall_line_width_0", "value") #All elements without a line width get the outer wall line width assigned.
-		for child in element:
-			yield from self.transform_line_width(self.parse(child), default_line_width)
+		cx = self.try_float(element.attrib, "cx", 0)
+		cy = self.try_float(element.attrib, "cy", 0)
+		r = self.try_float(element.attrib, "r", 0)
+		if r == 0:
+			return #Circles without radius don't exist here.
+		line_width = self.get_line_width(element)
+
+		yield TravelCommand.TravelCommand(x=cx + r, y=cy)
+		yield from self.transform_line_width(self.extrude_arc(cx + r, cy, r, r, 0, False, False, cx, cy - r), line_width)
+		yield from self.transform_line_width(self.extrude_arc(cx, cy - r, r, r, 0, False, False, cx - r, cy), line_width)
+		yield from self.transform_line_width(self.extrude_arc(cx - r, cy, r, r, 0, False, False, cx, cy + r), line_width)
+		yield from self.transform_line_width(self.extrude_arc(cx, cy + r, r, r, 0, False, False, cx + r, cy), line_width)
 
 	def parse_rect(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 		"""
@@ -212,6 +221,18 @@ class Parser:
 		yield from self.transform_line_width(self.extrude_arc(x + rx, y + height, rx, ry, 0, False, True, x, y + height - ry), line_width)
 		yield ExtrudeCommand.ExtrudeCommand(x=x, y=y + ry, line_width=line_width)
 		yield from self.transform_line_width(self.extrude_arc(x, y + ry, rx, ry, 0, False, True, x + rx, y), line_width)
+
+	def parse_svg(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
+		"""
+		Parses the SVG element, which basically concatenates all commands put forth
+		by its children.
+		:param element: The SVG element.
+		:return: A sequence of commands necessary to print this element.
+		"""
+		extruder_stack = cura.Settings.ExtruderManager.ExtruderManager.getInstance().getActiveExtruderStack()
+		default_line_width = extruder_stack.getProperty("wall_line_width_0", "value") #All elements without a line width get the outer wall line width assigned.
+		for child in element:
+			yield from self.transform_line_width(self.parse(child), default_line_width)
 
 	def transform_line_width(self, commands: typing.Iterable[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand]], new_line_width) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 		"""
