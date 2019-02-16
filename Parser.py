@@ -22,7 +22,6 @@ class Parser:
 	def __init__(self):
 		extruder_stack = cura.Settings.ExtruderManager.ExtruderManager.getInstance().getActiveExtruderStack()
 		self.resolution = extruder_stack.getProperty("meshfix_maximum_resolution", "value")
-		self.default_line_width = extruder_stack.getProperty("wall_line_width_0", "value")
 
 	def extrude_arc(self, start_x, start_y, rx, ry, rotation, large_arc, sweep_flag, end_x, end_y):
 		"""
@@ -48,10 +47,10 @@ class Parser:
 		rx = abs(rx)
 		ry = abs(ry)
 		if rx == 0 or ry == 0: #Invalid radius. Skip this arc.
-			yield ExtrudeCommand.ExtrudeCommand(end_x, end_y, self.default_line_width)
+			yield ExtrudeCommand.ExtrudeCommand(end_x, end_y, 0)
 			return
 		if (end_x - start_x) * (end_x - start_x) + (end_y - start_y) * (end_y - start_y) <= self.resolution * self.resolution: #Too small to fit with higher resolution.
-			yield ExtrudeCommand.ExtrudeCommand(end_x, end_y, self.default_line_width)
+			yield ExtrudeCommand.ExtrudeCommand(end_x, end_y, 0)
 			return
 
 		#Implementation of https://www.w3.org/TR/SVG/implnote.html#ArcImplementationNotes to find centre of ellipse.
@@ -118,9 +117,40 @@ class Parser:
 					lower_angle = new_angle
 			current_x = new_x
 			current_y = new_y
-			yield ExtrudeCommand.ExtrudeCommand(current_x, current_y, self.default_line_width)
+			yield ExtrudeCommand.ExtrudeCommand(current_x, current_y, 0)
 			start_angle = new_angle
-		yield ExtrudeCommand.ExtrudeCommand(end_x, end_y, self.default_line_width)
+		yield ExtrudeCommand.ExtrudeCommand(end_x, end_y, 0)
+
+	def get_line_width(self, element) -> float:
+		"""
+		Gets the line width from a specified element.
+
+		If the style of the element is adjusted by parent elements, that will
+		not be reflected here. You need to transform the child elements in order
+		to correct the line width if an element with children defines a line
+		width.
+		:param element: The element to get the line width of.
+		:return: The line width of that element.
+		"""
+		line_width = 0
+		if "stroke-width" in element.attrib:
+			try:
+				line_width = float(element.attrib["stroke-width"])
+			except ValueError: #Not parsable as float.
+				pass
+		if "style" in element.attrib: #CSS overrides attribute.
+			css = element.attrib["style"]
+			pieces = css.split(";")
+			for piece in pieces:
+				piece = piece.strip()
+				if piece.startswith("stroke-width:"):
+					piece = piece[len("stroke-width:"):]
+					piece = piece.strip()
+					try:
+						line_width = float(piece)
+					except ValueError: #Not parsable as float.
+						pass #Leave it at the default or the attribute.
+		return line_width
 
 	def parse(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 		"""
@@ -149,8 +179,10 @@ class Parser:
 		:param element: The SVG element.
 		:return: A sequence of commands necessary to print this element.
 		"""
+		extruder_stack = cura.Settings.ExtruderManager.ExtruderManager.getInstance().getActiveExtruderStack()
+		default_line_width = extruder_stack.getProperty("wall_line_width_0", "value") #All elements without a line width get the outer wall line width assigned.
 		for child in element:
-			yield from self.parse(child)
+			yield from self.transform_line_width(self.parse(child), default_line_width)
 
 	def parse_rect(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 		"""
@@ -164,6 +196,7 @@ class Parser:
 		ry = self.try_float(element.attrib, "ry", 0)
 		width = self.try_float(element.attrib, "width", 0)
 		height = self.try_float(element.attrib, "height", 0)
+		line_width = self.get_line_width(element)
 
 		if width == 0 or height == 0:
 			return #No surface, no print!
@@ -171,16 +204,28 @@ class Parser:
 		ry = min(ry, height / 2)
 
 		yield TravelCommand.TravelCommand(x=x + rx, y=y)
-		yield ExtrudeCommand.ExtrudeCommand(x=x + width - rx, y=y)
-		yield from self.extrude_arc(x + width - rx, y, rx, ry, 0, False, True, x + width, y + ry)
-		yield ExtrudeCommand.ExtrudeCommand(x=x + width, y=y + height - ry)
-		yield from self.extrude_arc(x + width, y + height - ry, rx, ry, 0, False, True, x + width - rx, y + height)
-		yield ExtrudeCommand.ExtrudeCommand(x=x + rx, y=y + height)
-		yield from self.extrude_arc(x + rx, y + height, rx, ry, 0, False, True, x, y + height - ry)
-		yield ExtrudeCommand.ExtrudeCommand(x=x, y=y + ry)
-		yield from self.extrude_arc(x, y + ry, rx, ry, 0, False, True, x + rx, y)
+		yield ExtrudeCommand.ExtrudeCommand(x=x + width - rx, y=y, line_width=line_width)
+		yield from self.transform_line_width(self.extrude_arc(x + width - rx, y, rx, ry, 0, False, True, x + width, y + ry), line_width)
+		yield ExtrudeCommand.ExtrudeCommand(x=x + width, y=y + height - ry, line_width=line_width)
+		yield from self.transform_line_width(self.extrude_arc(x + width, y + height - ry, rx, ry, 0, False, True, x + width - rx, y + height), line_width)
+		yield ExtrudeCommand.ExtrudeCommand(x=x + rx, y=y + height, line_width=line_width)
+		yield from self.transform_line_width(self.extrude_arc(x + rx, y + height, rx, ry, 0, False, True, x, y + height - ry), line_width)
+		yield ExtrudeCommand.ExtrudeCommand(x=x, y=y + ry, line_width=line_width)
+		yield from self.transform_line_width(self.extrude_arc(x, y + ry, rx, ry, 0, False, True, x + rx, y), line_width)
 
-	def transform
+	def transform_line_width(self, commands: typing.Iterable[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand]], new_line_width) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
+		"""
+		Changes the commands that don't have a line width to give them a line
+		width.
+		:param commands: The commands that need a line width assigned to them.
+		:param new_line_width: The new line width to give to these commands.
+		:return: A sequence of commands with the corrected line widths.
+		"""
+		for command in commands:
+			if isinstance(command, ExtrudeCommand.ExtrudeCommand):
+				if command.line_width == 0:
+					command.line_width = new_line_width
+			yield command
 
 	def try_float(self, dictionary, attribute, default: float) -> float:
 		"""
