@@ -260,7 +260,7 @@ class Parser:
 			element.attrib["stroke-width"] = stroke_width
 
 		for child in element:
-			if stroke_width is not None:
+			if stroke_width is not None and "stroke-width" not in child.attrib:
 				child.attrib["stroke-width"] = stroke_width
 			self.inheritance(child)
 
