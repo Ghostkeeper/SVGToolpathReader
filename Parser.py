@@ -308,6 +308,10 @@ class Parser:
 		transformation = numpy.identity(3)
 
 		transform = transform.replace(")", ") ") #Ensure that every command is separated by spaces, even though func(0.5)fanc(2) is allowed.
+		while "  " in transform:
+			transform = transform.replace("  ", " ")
+		transform = transform.replace(", ", ",") #Don't split on commas.
+		transform = transform.replace(" ,", ",")
 		commands = transform.split()
 		for command in commands:
 			command = command.strip()
