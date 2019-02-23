@@ -332,60 +332,60 @@ class Parser:
 			if name == "matrix":
 				if len(values) != 6:
 					continue #Invalid: Needs 6 arguments.
-				transformation *= numpy.array(((values[0], values[1], values[2]), (values[3], values[4], values[5]), (0, 0, 1)))
+				transformation = numpy.matmul(numpy.array(((values[0], values[1], values[2]), (values[3], values[4], values[5]), (0, 0, 1))), transformation)
 			elif name == "translate":
 				if len(values) == 1:
 					values.append(0)
 				if len(values) != 2:
 					continue #Invalid: Translate needs at least 1 and at most 2 arguments.
-				transformation *= numpy.array(((1, 0, values[0]), (0, 1, values[1]), (0, 0, 1)))
+				transformation = numpy.matmul(numpy.array(((1, 0, values[0]), (0, 1, values[1]), (0, 0, 1))), transformation)
 			elif name == "translatex":
 				if len(values) != 1:
 					continue #Invalid: Needs 1 argument.
-				transformation *= numpy.array(((1, 0, values[0]), (0, 1, 0), (0, 0, 1)))
+				transformation = numpy.matmul(numpy.array(((1, 0, values[0]), (0, 1, 0), (0, 0, 1))), transformation)
 			elif name == "translatey":
 				if len(values) != 1:
 					continue #Invalid: Needs 1 argument.
-				transformation *= numpy.array(((1, 0, 0), (0, 1, values[0]), (0, 0, 1)))
+				transformation = numpy.matmul(numpy.array(((1, 0, 0), (0, 1, values[0]), (0, 0, 1))), transformation)
 			elif name == "scale":
 				if len(values) == 1:
 					values.append(values[0]) #Y scale needs to be the same as X scale then.
 				if len(values) != 2:
 					continue #Invalid: Scale needs at least 1 and at most 2 arguments.
-				transformation *= numpy.array(((values[0], 0, 0), (0, values[1], 0), (0, 0, 1)))
+				transformation = numpy.matmul(numpy.array(((values[0], 0, 0), (0, values[1], 0), (0, 0, 1))), transformation)
 			elif name == "scalex":
 				if len(values) != 1:
 					continue #Invalid: Needs 1 argument.
-				transformation *= numpy.array(((values[0], 0, 0), (0, 1, 0), (0, 0, 1)))
+				transformation = numpy.matmul(numpy.array(((values[0], 0, 0), (0, 1, 0), (0, 0, 1))), transformation)
 			elif name == "scaley":
 				if len(values) != 1:
 					continue #Invalid: Needs 1 argument.
-				transformation *= numpy.array(((1, 0, 0), (0, values[0], 0), (0, 0, 1)))
+				transformation = numpy.matmul(numpy.array(((1, 0, 0), (0, values[0], 0), (0, 0, 1))), transformation)
 			elif name == "rotate" or name == "rotatez": #Allow the 3D operation rotateZ as it simply rotates the 2D image in the same way.
 				if len(values) == 1:
 					values.append(0)
 					values.append(0)
 				if len(values) != 3:
 					continue #Invalid: Rotate needs 1 or 3 arguments.
-				transformation *= numpy.array(((1, 0, -values[1]), (0, 1, -values[2]), (0, 0, 1)))
-				transformation *= numpy.array(((math.cos(values[0]), -math.sin(values[0]), 0), (math.sin(values[0]), math.cos(values[0]), 0), (0, 0, 1)))
-				transformation *= numpy.array(((1, 0, values[1]), (0, 1, -values[2]), (0, 0, 1)))
+				transformation = numpy.matmul(numpy.array(((1, 0, -values[1]), (0, 1, -values[2]), (0, 0, 1))), transformation)
+				transformation = numpy.matmul(numpy.array(((math.cos(values[0]), -math.sin(values[0]), 0), (math.sin(values[0]), math.cos(values[0]), 0), (0, 0, 1))), transformation)
+				transformation = numpy.matmul(numpy.array(((1, 0, values[1]), (0, 1, -values[2]), (0, 0, 1))), transformation)
 			elif name == "skew":
 				if len(values) != 2:
 					continue #Invalid: Needs 2 arguments.
 				shear_x = math.cos(values[0] / 180 * math.pi) / math.sin(values[0] / 180 * math.pi)
 				shear_y = math.cos(values[1] / 180 * math.pi) / math.sin(values[1] / 180 * math.pi)
-				transformation *= numpy.array(((1, shear_x, 0), (shear_y, 1, 0), (0, 0, 1)))
+				transformation = numpy.matmul(numpy.array(((1, shear_x, 0), (shear_y, 1, 0), (0, 0, 1))), transformation)
 			elif name == "skewx":
 				if len(values) != 1:
 					continue #Invalid: Needs 1 argument.
 				shear_x = math.cos(values[0] / 180 * math.pi) / math.sin(values[0] / 180 * math.pi)
-				transformation *= numpy.array(((1, shear_x, 0), (0, 1, 0), (1, 0, 0)))
+				transformation = numpy.matmul(numpy.array(((1, shear_x, 0), (0, 1, 0), (1, 0, 0))), transformation)
 			elif name == "skewy":
 				if len(values) != 1:
 					continue #Invalid: Needs 1 argument.
 				shear_y = math.cos(values[0] / 180 * math.pi) / math.sin(values[0] / 180 * math.pi)
-				transformation *= numpy.array(((1, 0, 0), (shear_y, 1, 0), (1, 0, 0)))
+				transformation = numpy.matmul(numpy.array(((1, 0, 0), (shear_y, 1, 0), (1, 0, 0))), transformation)
 			else:
 				continue #Invalid: Unrecognised transformation operation (or 3D).
 
