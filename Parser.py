@@ -33,7 +33,7 @@ class Parser:
 		if "stroke-width" not in element.attrib:
 			element.attrib["stroke-width"] = extruder_stack.getProperty("wall_line_width_0", "value")
 
-	def extrude_arc(self, start_x, start_y, rx, ry, rotation, large_arc, sweep_flag, end_x, end_y, line_width):
+	def extrude_arc(self, start_x, start_y, rx, ry, rotation, large_arc, sweep_flag, end_x, end_y, line_width) -> typing.Generator[ExtrudeCommand.ExtrudeCommand, None, None]:
 		"""
 		Yields points of an elliptical arc spaced at the required resolution.
 
