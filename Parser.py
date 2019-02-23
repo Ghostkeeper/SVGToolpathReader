@@ -166,6 +166,8 @@ class Parser:
 		tag = element.tag[len(self._namespace):].lower()
 		if tag == "circle":
 			yield from self.parse_circle(element)
+		if tag == "g":
+			yield from self.parse_g(element)
 		if tag == "rect":
 			yield from self.parse_rect(element)
 		elif tag == "svg":
@@ -192,6 +194,17 @@ class Parser:
 		yield from self.transform_line_width(self.extrude_arc(cx, cy - r, r, r, 0, False, False, cx - r, cy), line_width)
 		yield from self.transform_line_width(self.extrude_arc(cx - r, cy, r, r, 0, False, False, cx, cy + r), line_width)
 		yield from self.transform_line_width(self.extrude_arc(cx, cy + r, r, r, 0, False, False, cx + r, cy), line_width)
+
+	def parse_g(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
+		"""
+		Parses the G element.
+
+		This element simply passes on its attributes to its children.
+		:param element: The G element.
+		:return: A sequence of commands necessary to print this element.
+		"""
+		for child in element:
+			yield from self.parse(child)
 
 	def parse_rect(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 		"""
