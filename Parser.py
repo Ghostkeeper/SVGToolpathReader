@@ -6,6 +6,7 @@
 
 import cura.Settings.ExtruderManager #To get settings from the active extruder.
 import math #Computing curves and such.
+import numpy #Transformation matrices.
 import typing
 import UM.Logger #To log parse errors and warnings.
 
@@ -291,3 +292,101 @@ class Parser:
 			return float(dictionary.get(attribute, default))
 		except ValueError: #Not parsable as float.
 			return default
+
+	def try_transform(self, transform) -> numpy.ndarray:
+		"""
+		Parses a transformation attribute, if possible.
+
+		If there is a syntax error somewhere in the transformation, that part of
+		the transformation gets ignored. Other parts might still be applied.
+
+		3D transformations are not supported.
+		:param transform: A series of transformation commands.
+		:return: A Numpy array that would apply the transformations indicated
+		by the commands. The array is a 2D affine transformation (3x3).
+		"""
+		transformation = numpy.identity(3)
+
+		transform = transform.replace(")", ") ") #Ensure that every command is separated by spaces, even though func(0.5)fanc(2) is allowed.
+		commands = transform.split()
+		for command in commands:
+			command = command.strip()
+			if command == "none":
+				continue #Ignore.
+			if command == "initial":
+				transformation = numpy.identity(3)
+				continue
+
+			if "(" not in command:
+				continue #Invalid: Not a function.
+			name_and_value = command.split("(")
+			if len(name_and_value) != 2:
+				continue #Invalid: More than one opening bracket.
+			name, value = name_and_value
+			name = name.strip().lower()
+			if ")" not in value:
+				continue #Invalid: Bracket not closed.
+			value = value[:value.find(")")] #Ignore everything after closing bracket. Should be nothing due to splitting on spaces higher.
+			values = [float(val) for val in value.replace(",", " ").split() if val]
+
+			if name == "matrix":
+				if len(values) != 6:
+					continue #Invalid: Needs 6 arguments.
+				transformation *= numpy.ndarray(((values[0], values[1], values[2]), (values[3], values[4], values[5]), (0, 0, 1)))
+			elif name == "translate":
+				if len(values) == 1:
+					values.append(0)
+				if len(values) != 2:
+					continue #Invalid: Translate needs at least 1 and at most 2 arguments.
+				transformation *= numpy.ndarray(((1, 0, values[0]), (0, 1, values[1]), (0, 0, 1)))
+			elif name == "translatex":
+				if len(values) != 1:
+					continue #Invalid: Needs 1 argument.
+				transformation *= numpy.ndarray(((1, 0, values[0]), (0, 1, 0), (0, 0, 1)))
+			elif name == "translatey":
+				if len(values) != 1:
+					continue #Invalid: Needs 1 argument.
+				transformation *= numpy.ndarray(((1, 0, 0), (0, 1, values[0]), (0, 0, 1)))
+			elif name == "scale":
+				if len(values) == 1:
+					values.append(values[0]) #Y scale needs to be the same as X scale then.
+				if len(values) != 2:
+					continue #Invalid: Scale needs at least 1 and at most 2 arguments.
+				transformation *= numpy.ndarray(((values[0], 0, 0), (0, values[1], 0), (0, 0, 1)))
+			elif name == "scalex":
+				if len(values) != 1:
+					continue #Invalid: Needs 1 argument.
+				transformation *= numpy.ndarray(((values[0], 0, 0), (0, 1, 0), (0, 0, 1)))
+			elif name == "scaley":
+				if len(values) != 1:
+					continue #Invalid: Needs 1 argument.
+				transformation *= numpy.ndarray(((1, 0, 0), (0, values[0], 0), (0, 0, 1)))
+			elif name == "rotate" or name == "rotatez": #Allow the 3D operation rotateZ as it simply rotates the 2D image in the same way.
+				if len(values) == 1:
+					values.append(0)
+					values.append(0)
+				if len(values) != 3:
+					continue #Invalid: Rotate needs 1 or 3 arguments.
+				transformation *= numpy.ndarray(((1, 0, -values[1]), (0, 1, -values[2]), (0, 0, 1)))
+				transformation *= numpy.ndarray(((math.cos(values[0]), -math.sin(values[0]), 0), (math.sin(values[0]), math.cos(values[0]), 0), (0, 0, 1)))
+				transformation *= numpy.ndarray(((1, 0, values[1]), (0, 1, -values[2]), (0, 0, 1)))
+			elif name == "skew":
+				if len(values) != 2:
+					continue #Invalid: Needs 2 arguments.
+				shear_x = math.cos(values[0] / 180 * math.pi) / math.sin(values[0] / 180 * math.pi)
+				shear_y = math.cos(values[1] / 180 * math.pi) / math.sin(values[1] / 180 * math.pi)
+				transformation *= numpy.ndarray(((1, shear_x, 0), (shear_y, 1, 0), (0, 0, 1)))
+			elif name == "skewx":
+				if len(values) != 1:
+					continue #Invalid: Needs 1 argument.
+				shear_x = math.cos(values[0] / 180 * math.pi) / math.sin(values[0] / 180 * math.pi)
+				transformation *= numpy.ndarray(((1, shear_x, 0), (0, 1, 0), (1, 0, 0)))
+			elif name == "skewy":
+				if len(values) != 1:
+					continue #Invalid: Needs 1 argument.
+				shear_y = math.cos(values[0] / 180 * math.pi) / math.sin(values[0] / 180 * math.pi)
+				transformation *= numpy.ndarray(((1, 0, 0), (shear_y, 1, 0), (1, 0, 0)))
+			else:
+				continue #Invalid: Unrecognised transformation operation (or 3D).
+
+		return transformation
