@@ -403,7 +403,7 @@ class Parser:
 				if len(values) != 3:
 					continue #Invalid: Rotate needs 1 or 3 arguments.
 				transformation = numpy.matmul(numpy.array(((1, 0, -values[1]), (0, 1, -values[2]), (0, 0, 1))), transformation)
-				transformation = numpy.matmul(numpy.array(((math.cos(values[0]), -math.sin(values[0]), 0), (math.sin(values[0]), math.cos(values[0]), 0), (0, 0, 1))), transformation)
+				transformation = numpy.matmul(numpy.array(((math.cos(values[0] / 180 * math.pi), -math.sin(values[0] / 180 * math.pi), 0), (math.sin(values[0] / 180 * math.pi), math.cos(values[0] / 180 * math.pi), 0), (0, 0, 1))), transformation)
 				transformation = numpy.matmul(numpy.array(((1, 0, values[1]), (0, 1, -values[2]), (0, 0, 1))), transformation)
 			elif name == "skew":
 				if len(values) != 2:
