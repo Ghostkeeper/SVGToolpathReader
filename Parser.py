@@ -32,6 +32,8 @@ class Parser:
 
 		if "stroke-width" not in element.attrib:
 			element.attrib["stroke-width"] = extruder_stack.getProperty("wall_line_width_0", "value")
+		if "transform" not in element.attrib:
+			element.attrib["transform"] = ""
 
 	def extrude_arc(self, start_x, start_y, rx, ry, rotation, large_arc, sweep_flag, end_x, end_y, line_width) -> typing.Generator[ExtrudeCommand.ExtrudeCommand, None, None]:
 		"""
@@ -238,11 +240,13 @@ class Parser:
 		to all descendants.
 		"""
 		stroke_width = None
+		transform = element.attrib.get("transform")
 		if "stroke-width" in element.attrib:
 			try:
 				stroke_width = str(float(element.attrib["stroke-width"]))
 			except ValueError: #Not parsable as float.
 				pass
+
 		if "style" in element.attrib: #CSS overrides attribute.
 			css = element.attrib["style"]
 			pieces = css.split(";")
@@ -255,13 +259,22 @@ class Parser:
 						stroke_width = str(float(piece))
 					except ValueError: #Not parsable as float.
 						pass #Leave it at the default or the attribute.
+				elif piece.startswith("transform:"):
+					piece = piece[len("transform:"):]
+					transform = piece.strip()
 			del element.attrib["style"]
 		if stroke_width is not None:
 			element.attrib["stroke-width"] = stroke_width
+		if transform is not None:
+			element.attrib["transform"] = transform
 
 		for child in element:
 			if stroke_width is not None and "stroke-width" not in child.attrib:
 				child.attrib["stroke-width"] = stroke_width
+			if transform is not None:
+				if "transform" not in child.attrib:
+					child.attrib["transform"] = ""
+				child.attrib["transform"] = transform + " " + child.attrib["transform"]
 			self.inheritance(child)
 
 	def try_float(self, dictionary, attribute, default: float) -> float:
