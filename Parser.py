@@ -36,12 +36,31 @@ class Parser:
 		if "transform" not in element.attrib:
 			element.attrib["transform"] = ""
 
-	def extrude_arc(self, start_x, start_y, rx, ry, rotation, large_arc, sweep_flag, end_x, end_y, line_width) -> typing.Generator[ExtrudeCommand.ExtrudeCommand, None, None]:
+	def apply_transformation(self, x, y, transformation) -> typing.Tuple[float, float]:
+		"""
+		Apply a transformation matrix on some coordinates.
+		:param x: The X coordinate of the position to transform.
+		:param y: The Y coordinate of the position to transform.
+		:param transformation: A transformation matrix to transform this
+		coordinate by.
+		:return: The transformed X and Y coordinates.
+		"""
+		position = numpy.array(((x, y, 1)))
+		new_position = numpy.matmul(transformation, position)
+		return new_position[0], new_position[1]
+
+	def extrude_arc(self, dx, dy, start_x, start_y, rx, ry, rotation, large_arc, sweep_flag, end_x, end_y, line_width, transformation) -> typing.Generator[ExtrudeCommand.ExtrudeCommand, None, None]:
 		"""
 		Yields points of an elliptical arc spaced at the required resolution.
 
 		The parameters of the arc include the starting X,Y coordinates as well
 		as all of the parameters of an A command in an SVG path.
+		:param dx: The X coordinate of the transformation origin. This
+		coordinate will not be transformed along, but will be added to the
+		coordinates of the g-code.
+		:param dy: The Y coordinate of the transformation origin. This
+		coordinate will not be transformed along, but will be added to the
+		coordinates of the g-code.
 		:param start_x: The X coordinate where the arc starts.
 		:param start_y: The Y coordinate where the arc starts.
 		:param rx: The X radius of the ellipse to follow.
@@ -54,6 +73,7 @@ class Parser:
 		:param end_x: The X coordinate of the final position to end up at.
 		:param end_y: The Y coordinate of the final position to end up at.
 		:param line_width: The width of the lines to extrude with.
+		:param transformation: A transformation matrix to apply to the arc.
 		:return: A sequence of extrude commands that follow the arc.
 		"""
 		if start_x == end_x and start_y == end_y: #Nothing to draw.
@@ -107,7 +127,9 @@ class Parser:
 		#Use Newton's method to find segments of the required length along the ellipsis, basically using binary search.
 		current_x = start_x
 		current_y = start_y
-		while (current_x - end_x) * (current_x - end_x) + (current_y - end_y) * (current_y - end_y) > self.resolution * self.resolution: #While further than the resolution, make new points.
+		current_x_transformed, current_y_transformed = self.apply_transformation(current_x, current_y, transformation)
+		end_x_transformed, end_y_transformed = self.apply_transformation(end_x, end_y, transformation)
+		while (current_x_transformed - end_x_transformed) * (current_x_transformed - end_x_transformed) + (current_y_transformed - end_y_transformed) * (current_y_transformed - end_y_transformed) > self.resolution * self.resolution: #While further than the resolution, make new points.
 			lower_angle = start_angle #Regardless of in which direction the delta_angle goes.
 			upper_angle = end_angle
 			current_error = self.resolution
@@ -123,7 +145,9 @@ class Parser:
 				new_y = sin_rotation * new_x_temp + cos_rotation * new_y
 				new_x += cx
 				new_y += cy
-				current_step = math.sqrt((new_x - current_x) * (new_x - current_x) + (new_y - current_y) * (new_y - current_y))
+				new_x_transformed, new_y_transformed = self.apply_transformation(new_x, new_y, transformation)
+				current_x_transformed, current_y_transformed = self.apply_transformation(current_x, current_y, transformation)
+				current_step = math.sqrt((new_x_transformed - current_x_transformed) * (new_x_transformed - current_x_transformed) + (new_y_transformed - current_y_transformed) * (new_y_transformed - current_y_transformed))
 				current_error = current_step - self.resolution
 				if current_error > 0: #Step is too far.
 					upper_angle = new_angle
@@ -131,9 +155,11 @@ class Parser:
 					lower_angle = new_angle
 			current_x = new_x
 			current_y = new_y
-			yield ExtrudeCommand.ExtrudeCommand(current_x, current_y, line_width)
+			current_x_transformed, current_y_transformed = self.apply_transformation(current_x, current_y, transformation)
+			yield ExtrudeCommand.ExtrudeCommand(dx + current_x_transformed, dy + current_y_transformed, line_width)
 			start_angle = new_angle
-		yield ExtrudeCommand.ExtrudeCommand(end_x, end_y, line_width)
+		end_x_transformed, end_y_transformed = self.apply_transformation(end_x, end_y, transformation)
+		yield ExtrudeCommand.ExtrudeCommand(dx + end_x_transformed, dy + end_y_transformed, line_width)
 
 	def parse(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 		"""
@@ -202,21 +228,26 @@ class Parser:
 		width = self.try_float(element.attrib, "width", 0)
 		height = self.try_float(element.attrib, "height", 0)
 		line_width = self.try_float(element.attrib, "stroke-width", 0)
+		transformation = self.try_transform(element.attrib.get("transform", ""))
 
 		if width == 0 or height == 0:
 			return #No surface, no print!
 		rx = min(rx, width / 2) #Limit rounded corners to half the rectangle.
 		ry = min(ry, height / 2)
-
-		yield TravelCommand.TravelCommand(x=x + rx, y=y)
-		yield ExtrudeCommand.ExtrudeCommand(x=x + width - rx, y=y, line_width=line_width)
-		yield from self.extrude_arc(x + width - rx, y, rx, ry, 0, False, True, x + width, y + ry, line_width)
-		yield ExtrudeCommand.ExtrudeCommand(x=x + width, y=y + height - ry, line_width=line_width)
-		yield from self.extrude_arc(x + width, y + height - ry, rx, ry, 0, False, True, x + width - rx, y + height, line_width)
-		yield ExtrudeCommand.ExtrudeCommand(x=x + rx, y=y + height, line_width=line_width)
-		yield from self.extrude_arc(x + rx, y + height, rx, ry, 0, False, True, x, y + height - ry, line_width)
-		yield ExtrudeCommand.ExtrudeCommand(x=x, y=y + ry, line_width=line_width)
-		yield from self.extrude_arc(x, y + ry, rx, ry, 0, False, True, x + rx, y, line_width)
+		dx, dy = self.apply_transformation(rx, 0, transformation)
+		yield TravelCommand.TravelCommand(x=x + dx, y=y + dy)
+		dx, dy = self.apply_transformation(width - rx, 0, transformation)
+		yield ExtrudeCommand.ExtrudeCommand(x=x + dx, y=y + dy, line_width=line_width)
+		yield from self.extrude_arc(x, y, width - rx, 0, rx, ry, 0, False, True, width, ry, line_width, transformation)
+		dx, dy = self.apply_transformation(width, height - ry, transformation)
+		yield ExtrudeCommand.ExtrudeCommand(x=x + dx, y=y + dy, line_width=line_width)
+		yield from self.extrude_arc(x, y, width, height - ry, rx, ry, 0, False, True, width - rx, height, line_width, transformation)
+		dx, dy = self.apply_transformation(rx, height, transformation)
+		yield ExtrudeCommand.ExtrudeCommand(x=x + dx, y=y + dy, line_width=line_width)
+		yield from self.extrude_arc(x, y, rx, height, rx, ry, 0, False, True, 0, height - ry, line_width, transformation)
+		dx, dy = self.apply_transformation(0, ry, transformation)
+		yield ExtrudeCommand.ExtrudeCommand(x=x + dx, y=y + dy, line_width=line_width)
+		yield from self.extrude_arc(x, y, 0, ry, rx, ry, 0, False, True, rx, 0, line_width, transformation)
 
 	def parse_svg(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 		"""
