@@ -45,7 +45,7 @@ class Parser:
 		coordinate by.
 		:return: The transformed X and Y coordinates.
 		"""
-		position = numpy.array(((x, y, 1)))
+		position = numpy.array(((float(x), float(y), 1)))
 		new_position = numpy.matmul(transformation, position)
 		return new_position[0], new_position[1]
 
