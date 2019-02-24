@@ -193,13 +193,13 @@ class Parser:
 		:param element: The Circle element.
 		:return: A sequence of commands necessary to print this element.
 		"""
-		cx = self.try_float(element.attrib, "cx", 0)
-		cy = self.try_float(element.attrib, "cy", 0)
-		r = self.try_float(element.attrib, "r", 0)
+		cx = self.convert_float(element.attrib, "cx", 0)
+		cy = self.convert_float(element.attrib, "cy", 0)
+		r = self.convert_float(element.attrib, "r", 0)
 		if r == 0:
 			return #Circles without radius don't exist here.
-		line_width = self.try_float(element.attrib, "stroke-width", 0)
-		transformation = self.try_transform(element.attrib.get("transform", ""))
+		line_width = self.convert_float(element.attrib, "stroke-width", 0)
+		transformation = self.convert_transform(element.attrib.get("transform", ""))
 
 		tx, ty = self.apply_transformation(cx + r, cy, transformation)
 		yield TravelCommand.TravelCommand(x=tx, y=ty)
@@ -214,16 +214,16 @@ class Parser:
 		:param element: The Ellipse element.
 		:return: A sequence of commands necessary to print this element.
 		"""
-		cx = self.try_float(element.attrib, "cx", 0)
-		cy = self.try_float(element.attrib, "cy", 0)
-		rx = self.try_float(element.attrib, "rx", 0)
+		cx = self.convert_float(element.attrib, "cx", 0)
+		cy = self.convert_float(element.attrib, "cy", 0)
+		rx = self.convert_float(element.attrib, "rx", 0)
 		if rx == 0:
 			return #Ellipses without radius don't exist here.
-		ry = self.try_float(element.attrib, "ry", 0)
+		ry = self.convert_float(element.attrib, "ry", 0)
 		if ry == 0:
 			return
-		line_width = self.try_float(element.attrib, "stroke-width", 0)
-		transformation = self.try_transform(element.attrib.get("transform", ""))
+		line_width = self.convert_float(element.attrib, "stroke-width", 0)
+		transformation = self.convert_transform(element.attrib.get("transform", ""))
 
 		tx, ty = self.apply_transformation(cx + rx, cy, transformation)
 		yield TravelCommand.TravelCommand(x=tx, y=ty)
@@ -251,12 +251,12 @@ class Parser:
 		:param element: The Line element.
 		:return: A sequence of commands necessary to print this element.
 		"""
-		line_width = self.try_float(element.attrib, "stroke-width", 0)
-		transformation = self.try_transform(element.attrib.get("transform", ""))
-		x1 = self.try_float(element.attrib, "x1", 0)
-		y1 = self.try_float(element.attrib, "y1", 0)
-		x2 = self.try_float(element.attrib, "x2", 0)
-		y2 = self.try_float(element.attrib, "y2", 0)
+		line_width = self.convert_float(element.attrib, "stroke-width", 0)
+		transformation = self.convert_transform(element.attrib.get("transform", ""))
+		x1 = self.convert_float(element.attrib, "x1", 0)
+		y1 = self.convert_float(element.attrib, "y1", 0)
+		x2 = self.convert_float(element.attrib, "x2", 0)
+		y2 = self.convert_float(element.attrib, "y2", 0)
 
 		x1, y1 = self.apply_transformation(x1, y1, transformation)
 		x2, y2 = self.apply_transformation(x2, y2, transformation)
@@ -272,12 +272,12 @@ class Parser:
 		:param element: The Polygon element.
 		:return: A sequence of commands necessary to print this element.
 		"""
-		line_width = self.try_float(element.attrib, "stroke-width", 0)
-		transformation = self.try_transform(element.attrib.get("transform", ""))
+		line_width = self.convert_float(element.attrib, "stroke-width", 0)
+		transformation = self.convert_transform(element.attrib.get("transform", ""))
 
 		first_x = None #Save these in order to get back to the starting coordinates. And to use a travel command.
 		first_y = None
-		for x, y in self.try_points(element.attrib.get("points", "")):
+		for x, y in self.convert_points(element.attrib.get("points", "")):
 			x, y = self.apply_transformation(x, y, transformation)
 			if first_x is None or first_y is None:
 				first_x = x
@@ -297,11 +297,11 @@ class Parser:
 		:param element: The Polyline element.
 		:return: A sequence of commands necessary to print this element.
 		"""
-		line_width = self.try_float(element.attrib, "stroke-width", 0)
-		transformation = self.try_transform(element.attrib.get("transform", ""))
+		line_width = self.convert_float(element.attrib, "stroke-width", 0)
+		transformation = self.convert_transform(element.attrib.get("transform", ""))
 
 		is_first = True #We must use a travel command for the first coordinate pair.
-		for x, y in self.try_points(element.attrib.get("points", "")):
+		for x, y in self.convert_points(element.attrib.get("points", "")):
 			x, y = self.apply_transformation(x, y, transformation)
 			if is_first:
 				yield TravelCommand.TravelCommand(x=x, y=y)
@@ -315,14 +315,14 @@ class Parser:
 		:param element: The Rect element.
 		:return: A sequence of commands necessary to print this element.
 		"""
-		x = self.try_float(element.attrib, "x", 0)
-		y = self.try_float(element.attrib, "y", 0)
-		rx = self.try_float(element.attrib, "rx", 0)
-		ry = self.try_float(element.attrib, "ry", 0)
-		width = self.try_float(element.attrib, "width", 0)
-		height = self.try_float(element.attrib, "height", 0)
-		line_width = self.try_float(element.attrib, "stroke-width", 0)
-		transformation = self.try_transform(element.attrib.get("transform", ""))
+		x = self.convert_float(element.attrib, "x", 0)
+		y = self.convert_float(element.attrib, "y", 0)
+		rx = self.convert_float(element.attrib, "rx", 0)
+		ry = self.convert_float(element.attrib, "ry", 0)
+		width = self.convert_float(element.attrib, "width", 0)
+		height = self.convert_float(element.attrib, "height", 0)
+		line_width = self.convert_float(element.attrib, "stroke-width", 0)
+		transformation = self.convert_transform(element.attrib.get("transform", ""))
 
 		if width == 0 or height == 0:
 			return #No surface, no print!
@@ -403,7 +403,7 @@ class Parser:
 				child.attrib["transform"] = transform + " " + child.attrib["transform"]
 			self.inheritance(child)
 
-	def try_float(self, dictionary, attribute, default: float) -> float:
+	def convert_float(self, dictionary, attribute, default: float) -> float:
 		"""
 		Parses an attribute as float, if possible.
 
@@ -418,9 +418,9 @@ class Parser:
 		except ValueError: #Not parsable as float.
 			return default
 
-	def try_points(self, points) -> typing.Generator[typing.Tuple[float, float], None, None]:
+	def convert_points(self, points) -> typing.Generator[typing.Tuple[float, float], None, None]:
 		"""
-		Parses a points attribute, if possible.
+		Parses a points attribute, turning it into a list of coordinate pairs.
 
 		If there is a syntax error, that part of the points will get ignored.
 		Other parts might still be included.
@@ -438,9 +438,10 @@ class Parser:
 		for x, y in (points[i:i + 2] for i in range(0, len(points), 2)):
 			yield x, y
 
-	def try_transform(self, transform) -> numpy.ndarray:
+	def convert_transform(self, transform) -> numpy.ndarray:
 		"""
-		Parses a transformation attribute, if possible.
+		Parses a transformation attribute, turning it into a transformation
+		matrix.
 
 		If there is a syntax error somewhere in the transformation, that part of
 		the transformation gets ignored. Other parts might still be applied.
