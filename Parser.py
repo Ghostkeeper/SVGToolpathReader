@@ -24,18 +24,6 @@ class Parser:
 		extruder_stack = cura.Settings.ExtruderManager.ExtruderManager.getInstance().getActiveExtruderStack()
 		self.resolution = extruder_stack.getProperty("meshfix_maximum_resolution", "value")
 
-	def defaults(self, element) -> None:
-		"""
-		Sets the defaults for some properties on the document root.
-		:param element: The document root.
-		"""
-		extruder_stack = cura.Settings.ExtruderManager.ExtruderManager.getInstance().getActiveExtruderStack()
-
-		if "stroke-width" not in element.attrib:
-			element.attrib["stroke-width"] = extruder_stack.getProperty("wall_line_width_0", "value")
-		if "transform" not in element.attrib:
-			element.attrib["transform"] = ""
-
 	def apply_transformation(self, x, y, transformation) -> typing.Tuple[float, float]:
 		"""
 		Apply a transformation matrix on some coordinates.
@@ -48,6 +36,152 @@ class Parser:
 		position = numpy.array(((float(x), float(y), 1)))
 		new_position = numpy.matmul(transformation, position)
 		return new_position[0], new_position[1]
+
+	def convert_float(self, dictionary, attribute, default: float) -> float:
+		"""
+		Parses an attribute as float, if possible.
+
+		If impossible or missing, this returns the default.
+		:param dictionary: The attributes dictionary to get the attribute from.
+		:param attribute: The attribute to get from the dictionary.
+		:param default: The default value for this attribute.
+		:return: A floating point number that was in the attribute, or the default.
+		"""
+		try:
+			return float(dictionary.get(attribute, default))
+		except ValueError: #Not parsable as float.
+			return default
+
+	def convert_points(self, points) -> typing.Generator[typing.Tuple[float, float], None, None]:
+		"""
+		Parses a points attribute, turning it into a list of coordinate pairs.
+
+		If there is a syntax error, that part of the points will get ignored.
+		Other parts might still be included.
+		:param points: A series of points.
+		:return: A list of x,y pairs.
+		"""
+		points = points.replace(",", " ")
+		while "  " in points:
+			points = points.replace("  ", " ")
+		points = points.strip()
+		points = points.split()
+		if len(points) % 2 != 0: #If we have an odd number of points, leave out the last.
+			points = points[:-1]
+
+		for x, y in (points[i:i + 2] for i in range(0, len(points), 2)):
+			yield x, y
+
+	def convert_transform(self, transform) -> numpy.ndarray:
+		"""
+		Parses a transformation attribute, turning it into a transformation
+		matrix.
+
+		If there is a syntax error somewhere in the transformation, that part of
+		the transformation gets ignored. Other parts might still be applied.
+
+		3D transformations are not supported.
+		:param transform: A series of transformation commands.
+		:return: A Numpy array that would apply the transformations indicated
+		by the commands. The array is a 2D affine transformation (3x3).
+		"""
+		transformation = numpy.identity(3)
+
+		transform = transform.replace(")", ") ") #Ensure that every command is separated by spaces, even though func(0.5)fanc(2) is allowed.
+		while "  " in transform:
+			transform = transform.replace("  ", " ")
+		transform = transform.replace(", ", ",") #Don't split on commas.
+		transform = transform.replace(" ,", ",")
+		commands = transform.split()
+		for command in commands:
+			command = command.strip()
+			if command == "none":
+				continue #Ignore.
+			if command == "initial":
+				transformation = numpy.identity(3)
+				continue
+
+			if "(" not in command:
+				continue #Invalid: Not a function.
+			name_and_value = command.split("(")
+			if len(name_and_value) != 2:
+				continue #Invalid: More than one opening bracket.
+			name, value = name_and_value
+			name = name.strip().lower()
+			if ")" not in value:
+				continue #Invalid: Bracket not closed.
+			value = value[:value.find(")")] #Ignore everything after closing bracket. Should be nothing due to splitting on spaces higher.
+			values = [float(val) for val in value.replace(",", " ").split() if val]
+
+			if name == "matrix":
+				if len(values) != 6:
+					continue #Invalid: Needs 6 arguments.
+				transformation = numpy.matmul(numpy.array(((values[0], values[1], values[2]), (values[3], values[4], values[5]), (0, 0, 1))), transformation)
+			elif name == "translate":
+				if len(values) == 1:
+					values.append(0)
+				if len(values) != 2:
+					continue #Invalid: Translate needs at least 1 and at most 2 arguments.
+				transformation = numpy.matmul(numpy.array(((1, 0, values[0]), (0, 1, values[1]), (0, 0, 1))), transformation)
+			elif name == "translatex":
+				if len(values) != 1:
+					continue #Invalid: Needs 1 argument.
+				transformation = numpy.matmul(numpy.array(((1, 0, values[0]), (0, 1, 0), (0, 0, 1))), transformation)
+			elif name == "translatey":
+				if len(values) != 1:
+					continue #Invalid: Needs 1 argument.
+				transformation = numpy.matmul(numpy.array(((1, 0, 0), (0, 1, values[0]), (0, 0, 1))), transformation)
+			elif name == "scale":
+				if len(values) == 1:
+					values.append(values[0]) #Y scale needs to be the same as X scale then.
+				if len(values) != 2:
+					continue #Invalid: Scale needs at least 1 and at most 2 arguments.
+				transformation = numpy.matmul(numpy.array(((values[0], 0, 0), (0, values[1], 0), (0, 0, 1))), transformation)
+			elif name == "scalex":
+				if len(values) != 1:
+					continue #Invalid: Needs 1 argument.
+				transformation = numpy.matmul(numpy.array(((values[0], 0, 0), (0, 1, 0), (0, 0, 1))), transformation)
+			elif name == "scaley":
+				if len(values) != 1:
+					continue #Invalid: Needs 1 argument.
+				transformation = numpy.matmul(numpy.array(((1, 0, 0), (0, values[0], 0), (0, 0, 1))), transformation)
+			elif name == "rotate" or name == "rotatez": #Allow the 3D operation rotateZ as it simply rotates the 2D image in the same way.
+				if len(values) == 1:
+					values.append(0)
+					values.append(0)
+				if len(values) != 3:
+					continue #Invalid: Rotate needs 1 or 3 arguments.
+				transformation = numpy.matmul(numpy.array(((1, 0, -values[1]), (0, 1, -values[2]), (0, 0, 1))), transformation)
+				transformation = numpy.matmul(numpy.array(((math.cos(values[0] / 180 * math.pi), -math.sin(values[0] / 180 * math.pi), 0), (math.sin(values[0] / 180 * math.pi), math.cos(values[0] / 180 * math.pi), 0), (0, 0, 1))), transformation)
+				transformation = numpy.matmul(numpy.array(((1, 0, values[1]), (0, 1, -values[2]), (0, 0, 1))), transformation)
+			elif name == "skew":
+				if len(values) != 2:
+					continue #Invalid: Needs 2 arguments.
+				transformation = numpy.matmul(numpy.array(((1, math.tan(values[0] / 180 * math.pi), 0), (math.tan(values[1] / 180 * math.pi), 1, 0), (0, 0, 1))), transformation)
+			elif name == "skewx":
+				if len(values) != 1:
+					continue #Invalid: Needs 1 argument.
+				transformation = numpy.matmul(numpy.array(((1, math.tan(values[0] / 180 * math.pi), 0), (0, 1, 0), (1, 0, 0))), transformation)
+			elif name == "skewy":
+				if len(values) != 1:
+					continue #Invalid: Needs 1 argument.
+				transformation = numpy.matmul(numpy.array(((1, 0, 0), (math.tan(values[0] / 180 * math.pi), 1, 0), (1, 0, 0))), transformation)
+			else:
+				continue #Invalid: Unrecognised transformation operation (or 3D).
+
+		return transformation
+
+	def defaults(self, element) -> None:
+		"""
+		Sets the defaults for some properties on the document root.
+		:param element: The document root.
+		"""
+		extruder_stack = cura.Settings.ExtruderManager.ExtruderManager.getInstance().getActiveExtruderStack()
+
+		if "stroke-width" not in element.attrib:
+			element.attrib["stroke-width"] = extruder_stack.getProperty("wall_line_width_0", "value")
+		if "transform" not in element.attrib:
+			element.attrib["transform"] = ""
 
 	def extrude_arc(self, start_x, start_y, rx, ry, rotation, large_arc, sweep_flag, end_x, end_y, line_width, transformation) -> typing.Generator[ExtrudeCommand.ExtrudeCommand, None, None]:
 		"""
@@ -154,6 +288,56 @@ class Parser:
 			start_angle = new_angle
 		end_x_transformed, end_y_transformed = self.apply_transformation(end_x, end_y, transformation)
 		yield ExtrudeCommand.ExtrudeCommand(end_x_transformed, end_y_transformed, line_width)
+
+	def inheritance(self, element) -> None:
+		"""
+		Pass inherited properties of elements down through the node tree.
+
+		Some properties, if not specified by child elements, should be taken
+		from parent elements.
+
+		This also parses the style property and turns it into the corresponding
+		attributes.
+		:param element: The parent element whose attributes have to be applied
+		to all descendants.
+		"""
+		stroke_width = None
+		transform = element.attrib.get("transform")
+		if "stroke-width" in element.attrib:
+			try:
+				stroke_width = str(float(element.attrib["stroke-width"]))
+			except ValueError: #Not parsable as float.
+				pass
+
+		if "style" in element.attrib: #CSS overrides attribute.
+			css = element.attrib["style"]
+			pieces = css.split(";")
+			for piece in pieces:
+				piece = piece.strip()
+				if piece.startswith("stroke-width:"):
+					piece = piece[len("stroke-width:"):]
+					piece = piece.strip()
+					try:
+						stroke_width = str(float(piece))
+					except ValueError: #Not parsable as float.
+						pass #Leave it at the default or the attribute.
+				elif piece.startswith("transform:"):
+					piece = piece[len("transform:"):]
+					transform = piece.strip()
+			del element.attrib["style"]
+		if stroke_width is not None:
+			element.attrib["stroke-width"] = stroke_width
+		if transform is not None:
+			element.attrib["transform"] = transform
+
+		for child in element:
+			if stroke_width is not None and "stroke-width" not in child.attrib:
+				child.attrib["stroke-width"] = stroke_width
+			if transform is not None:
+				if "transform" not in child.attrib:
+					child.attrib["transform"] = ""
+				child.attrib["transform"] = transform + " " + child.attrib["transform"]
+			self.inheritance(child)
 
 	def parse(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 		"""
@@ -352,187 +536,3 @@ class Parser:
 		"""
 		for child in element:
 			yield from self.parse(child)
-
-	def inheritance(self, element) -> None:
-		"""
-		Pass inherited properties of elements down through the node tree.
-
-		Some properties, if not specified by child elements, should be taken
-		from parent elements.
-
-		This also parses the style property and turns it into the corresponding
-		attributes.
-		:param element: The parent element whose attributes have to be applied
-		to all descendants.
-		"""
-		stroke_width = None
-		transform = element.attrib.get("transform")
-		if "stroke-width" in element.attrib:
-			try:
-				stroke_width = str(float(element.attrib["stroke-width"]))
-			except ValueError: #Not parsable as float.
-				pass
-
-		if "style" in element.attrib: #CSS overrides attribute.
-			css = element.attrib["style"]
-			pieces = css.split(";")
-			for piece in pieces:
-				piece = piece.strip()
-				if piece.startswith("stroke-width:"):
-					piece = piece[len("stroke-width:"):]
-					piece = piece.strip()
-					try:
-						stroke_width = str(float(piece))
-					except ValueError: #Not parsable as float.
-						pass #Leave it at the default or the attribute.
-				elif piece.startswith("transform:"):
-					piece = piece[len("transform:"):]
-					transform = piece.strip()
-			del element.attrib["style"]
-		if stroke_width is not None:
-			element.attrib["stroke-width"] = stroke_width
-		if transform is not None:
-			element.attrib["transform"] = transform
-
-		for child in element:
-			if stroke_width is not None and "stroke-width" not in child.attrib:
-				child.attrib["stroke-width"] = stroke_width
-			if transform is not None:
-				if "transform" not in child.attrib:
-					child.attrib["transform"] = ""
-				child.attrib["transform"] = transform + " " + child.attrib["transform"]
-			self.inheritance(child)
-
-	def convert_float(self, dictionary, attribute, default: float) -> float:
-		"""
-		Parses an attribute as float, if possible.
-
-		If impossible or missing, this returns the default.
-		:param dictionary: The attributes dictionary to get the attribute from.
-		:param attribute: The attribute to get from the dictionary.
-		:param default: The default value for this attribute.
-		:return: A floating point number that was in the attribute, or the default.
-		"""
-		try:
-			return float(dictionary.get(attribute, default))
-		except ValueError: #Not parsable as float.
-			return default
-
-	def convert_points(self, points) -> typing.Generator[typing.Tuple[float, float], None, None]:
-		"""
-		Parses a points attribute, turning it into a list of coordinate pairs.
-
-		If there is a syntax error, that part of the points will get ignored.
-		Other parts might still be included.
-		:param points: A series of points.
-		:return: A list of x,y pairs.
-		"""
-		points = points.replace(",", " ")
-		while "  " in points:
-			points = points.replace("  ", " ")
-		points = points.strip()
-		points = points.split()
-		if len(points) % 2 != 0: #If we have an odd number of points, leave out the last.
-			points = points[:-1]
-
-		for x, y in (points[i:i + 2] for i in range(0, len(points), 2)):
-			yield x, y
-
-	def convert_transform(self, transform) -> numpy.ndarray:
-		"""
-		Parses a transformation attribute, turning it into a transformation
-		matrix.
-
-		If there is a syntax error somewhere in the transformation, that part of
-		the transformation gets ignored. Other parts might still be applied.
-
-		3D transformations are not supported.
-		:param transform: A series of transformation commands.
-		:return: A Numpy array that would apply the transformations indicated
-		by the commands. The array is a 2D affine transformation (3x3).
-		"""
-		transformation = numpy.identity(3)
-
-		transform = transform.replace(")", ") ") #Ensure that every command is separated by spaces, even though func(0.5)fanc(2) is allowed.
-		while "  " in transform:
-			transform = transform.replace("  ", " ")
-		transform = transform.replace(", ", ",") #Don't split on commas.
-		transform = transform.replace(" ,", ",")
-		commands = transform.split()
-		for command in commands:
-			command = command.strip()
-			if command == "none":
-				continue #Ignore.
-			if command == "initial":
-				transformation = numpy.identity(3)
-				continue
-
-			if "(" not in command:
-				continue #Invalid: Not a function.
-			name_and_value = command.split("(")
-			if len(name_and_value) != 2:
-				continue #Invalid: More than one opening bracket.
-			name, value = name_and_value
-			name = name.strip().lower()
-			if ")" not in value:
-				continue #Invalid: Bracket not closed.
-			value = value[:value.find(")")] #Ignore everything after closing bracket. Should be nothing due to splitting on spaces higher.
-			values = [float(val) for val in value.replace(",", " ").split() if val]
-
-			if name == "matrix":
-				if len(values) != 6:
-					continue #Invalid: Needs 6 arguments.
-				transformation = numpy.matmul(numpy.array(((values[0], values[1], values[2]), (values[3], values[4], values[5]), (0, 0, 1))), transformation)
-			elif name == "translate":
-				if len(values) == 1:
-					values.append(0)
-				if len(values) != 2:
-					continue #Invalid: Translate needs at least 1 and at most 2 arguments.
-				transformation = numpy.matmul(numpy.array(((1, 0, values[0]), (0, 1, values[1]), (0, 0, 1))), transformation)
-			elif name == "translatex":
-				if len(values) != 1:
-					continue #Invalid: Needs 1 argument.
-				transformation = numpy.matmul(numpy.array(((1, 0, values[0]), (0, 1, 0), (0, 0, 1))), transformation)
-			elif name == "translatey":
-				if len(values) != 1:
-					continue #Invalid: Needs 1 argument.
-				transformation = numpy.matmul(numpy.array(((1, 0, 0), (0, 1, values[0]), (0, 0, 1))), transformation)
-			elif name == "scale":
-				if len(values) == 1:
-					values.append(values[0]) #Y scale needs to be the same as X scale then.
-				if len(values) != 2:
-					continue #Invalid: Scale needs at least 1 and at most 2 arguments.
-				transformation = numpy.matmul(numpy.array(((values[0], 0, 0), (0, values[1], 0), (0, 0, 1))), transformation)
-			elif name == "scalex":
-				if len(values) != 1:
-					continue #Invalid: Needs 1 argument.
-				transformation = numpy.matmul(numpy.array(((values[0], 0, 0), (0, 1, 0), (0, 0, 1))), transformation)
-			elif name == "scaley":
-				if len(values) != 1:
-					continue #Invalid: Needs 1 argument.
-				transformation = numpy.matmul(numpy.array(((1, 0, 0), (0, values[0], 0), (0, 0, 1))), transformation)
-			elif name == "rotate" or name == "rotatez": #Allow the 3D operation rotateZ as it simply rotates the 2D image in the same way.
-				if len(values) == 1:
-					values.append(0)
-					values.append(0)
-				if len(values) != 3:
-					continue #Invalid: Rotate needs 1 or 3 arguments.
-				transformation = numpy.matmul(numpy.array(((1, 0, -values[1]), (0, 1, -values[2]), (0, 0, 1))), transformation)
-				transformation = numpy.matmul(numpy.array(((math.cos(values[0] / 180 * math.pi), -math.sin(values[0] / 180 * math.pi), 0), (math.sin(values[0] / 180 * math.pi), math.cos(values[0] / 180 * math.pi), 0), (0, 0, 1))), transformation)
-				transformation = numpy.matmul(numpy.array(((1, 0, values[1]), (0, 1, -values[2]), (0, 0, 1))), transformation)
-			elif name == "skew":
-				if len(values) != 2:
-					continue #Invalid: Needs 2 arguments.
-				transformation = numpy.matmul(numpy.array(((1, math.tan(values[0] / 180 * math.pi), 0), (math.tan(values[1] / 180 * math.pi), 1, 0), (0, 0, 1))), transformation)
-			elif name == "skewx":
-				if len(values) != 1:
-					continue #Invalid: Needs 1 argument.
-				transformation = numpy.matmul(numpy.array(((1, math.tan(values[0] / 180 * math.pi), 0), (0, 1, 0), (1, 0, 0))), transformation)
-			elif name == "skewy":
-				if len(values) != 1:
-					continue #Invalid: Needs 1 argument.
-				transformation = numpy.matmul(numpy.array(((1, 0, 0), (math.tan(values[0] / 180 * math.pi), 1, 0), (1, 0, 0))), transformation)
-			else:
-				continue #Invalid: Unrecognised transformation operation (or 3D).
-
-		return transformation
