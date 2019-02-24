@@ -179,6 +179,8 @@ class Parser:
 			yield from self.parse_ellipse(element)
 		elif tag == "g":
 			yield from self.parse_g(element)
+		elif tag == "polygon":
+			yield from self.parse_polygon(element)
 		elif tag == "rect":
 			yield from self.parse_rect(element)
 		elif tag == "svg":
@@ -242,6 +244,31 @@ class Parser:
 		"""
 		for child in element:
 			yield from self.parse(child)
+
+	def parse_polygon(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
+		"""
+		Parses the Polygon element.
+
+		This element lists a number of vertices past which to travel, and the
+		polygon is closed at the end.
+		:param element: The Polygon element.
+		:return: A sequence of commands necessary to print this element.
+		"""
+		line_width = self.try_float(element.attrib, "stroke-width", 0)
+		transformation = self.try_transform(element.attrib.get("transform", ""))
+
+		first_x = None #Save these in order to get back to the starting coordinates. And to use a travel command.
+		first_y = None
+		for x, y in self.try_points(element.attrib.get("points", "")):
+			x, y = self.apply_transformation(x, y, transformation)
+			if first_x is None or first_y is None:
+				first_x = x
+				first_y = y
+				yield TravelCommand.TravelCommand(x=x, y=y)
+			else:
+				yield ExtrudeCommand.ExtrudeCommand(x=x, y=y, line_width=line_width)
+		if first_x is not None and first_y is not None: #Close the polygon.
+			yield ExtrudeCommand.ExtrudeCommand(x=first_x, y=first_y, line_width=line_width)
 
 	def parse_rect(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 		"""
@@ -351,6 +378,26 @@ class Parser:
 			return float(dictionary.get(attribute, default))
 		except ValueError: #Not parsable as float.
 			return default
+
+	def try_points(self, points) -> typing.Generator[typing.Tuple[float, float], None, None]:
+		"""
+		Parses a points attribute, if possible.
+
+		If there is a syntax error, that part of the points will get ignored.
+		Other parts might still be included.
+		:param points: A series of points.
+		:return: A list of x,y pairs.
+		"""
+		points = points.replace(",", " ")
+		while "  " in points:
+			points = points.replace("  ", " ")
+		points = points.strip()
+		points = points.split()
+		if len(points) % 2 != 0: #If we have an odd number of points, leave out the last.
+			points = points[:-1]
+
+		for x, y in (points[i:i + 2] for i in range(0, len(points), 2)):
+			yield x, y
 
 	def try_transform(self, transform) -> numpy.ndarray:
 		"""
