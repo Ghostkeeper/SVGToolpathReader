@@ -201,8 +201,8 @@ class Parser:
 		line_width = self.try_float(element.attrib, "stroke-width", 0)
 		transformation = self.try_transform(element.attrib.get("transform", ""))
 
-		dx, dy = self.apply_transformation(r, 0, transformation)
-		yield TravelCommand.TravelCommand(x=cx + dx, y=cy + dy)
+		tx, ty = self.apply_transformation(cx + r, cy, transformation)
+		yield TravelCommand.TravelCommand(x=tx, y=ty)
 		yield from self.extrude_arc(cx + r, cy, r, r, 0, False, False, cx, cy - r, line_width, transformation)
 		yield from self.extrude_arc(cx, cy - r, r, r, 0, False, False, cx - r, cy, line_width, transformation)
 		yield from self.extrude_arc(cx - r, cy, r, r, 0, False, False, cx, cy + r, line_width, transformation)
@@ -225,8 +225,8 @@ class Parser:
 		line_width = self.try_float(element.attrib, "stroke-width", 0)
 		transformation = self.try_transform(element.attrib.get("transform", ""))
 
-		dx, dy = self.apply_transformation(rx, 0, transformation)
-		yield TravelCommand.TravelCommand(x=cx + dx, y=cy + dy)
+		tx, ty = self.apply_transformation(cx + rx, cy, transformation)
+		yield TravelCommand.TravelCommand(x=tx, y=ty)
 		yield from self.extrude_arc(cx + rx, cy, rx, ry, 0, False, False, cx, cy - ry, line_width, transformation)
 		yield from self.extrude_arc(cx, cy - ry, rx, ry, 0, False, False, cx - rx, cy, line_width, transformation)
 		yield from self.extrude_arc(cx - rx, cy, rx, ry, 0, False, False, cx, cy + ry, line_width, transformation)
