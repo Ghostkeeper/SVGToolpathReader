@@ -197,12 +197,14 @@ class Parser:
 		if r == 0:
 			return #Circles without radius don't exist here.
 		line_width = self.try_float(element.attrib, "stroke-width", 0)
+		transformation = self.try_transform(element.attrib.get("transform", ""))
 
-		yield TravelCommand.TravelCommand(x=cx + r, y=cy)
-		yield from self.extrude_arc(cx + r, cy, r, r, 0, False, False, cx, cy - r, line_width)
-		yield from self.extrude_arc(cx, cy - r, r, r, 0, False, False, cx - r, cy, line_width)
-		yield from self.extrude_arc(cx - r, cy, r, r, 0, False, False, cx, cy + r, line_width)
-		yield from self.extrude_arc(cx, cy + r, r, r, 0, False, False, cx + r, cy, line_width)
+		dx, dy = self.apply_transformation(r, 0, transformation)
+		yield TravelCommand.TravelCommand(x=cx + dx, y=cy + dy)
+		yield from self.extrude_arc(cx, cy, r, 0, r, r, 0, False, False, 0, -r, line_width, transformation)
+		yield from self.extrude_arc(cx, cy, 0, -r, r, r, 0, False, False, -r, 0, line_width, transformation)
+		yield from self.extrude_arc(cx, cy, -r, 0, r, r, 0, False, False, 0, +r, line_width, transformation)
+		yield from self.extrude_arc(cx, cy, 0, r, r, r, 0, False, False, +r, 0, line_width, transformation)
 
 	def parse_g(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 		"""
