@@ -181,6 +181,8 @@ class Parser:
 			yield from self.parse_g(element)
 		elif tag == "polygon":
 			yield from self.parse_polygon(element)
+		elif tag == "polyline":
+			yield from self.parse_polyline(element)
 		elif tag == "rect":
 			yield from self.parse_rect(element)
 		elif tag == "svg":
@@ -269,6 +271,27 @@ class Parser:
 				yield ExtrudeCommand.ExtrudeCommand(x=x, y=y, line_width=line_width)
 		if first_x is not None and first_y is not None: #Close the polygon.
 			yield ExtrudeCommand.ExtrudeCommand(x=first_x, y=first_y, line_width=line_width)
+
+	def parse_polyline(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
+		"""
+		Parses the Polyline element.
+
+		This element lists a number of vertices past which to travel. The line
+		is not closed into a loop, contrary to the Polygon element.
+		:param element: The Polyline element.
+		:return: A sequence of commands necessary to print this element.
+		"""
+		line_width = self.try_float(element.attrib, "stroke-width", 0)
+		transformation = self.try_transform(element.attrib.get("transform", ""))
+
+		is_first = True #We must use a travel command for the first coordinate pair.
+		for x, y in self.try_points(element.attrib.get("points", "")):
+			x, y = self.apply_transformation(x, y, transformation)
+			if is_first:
+				yield TravelCommand.TravelCommand(x=x, y=y)
+				is_first = False
+			else:
+				yield ExtrudeCommand.ExtrudeCommand(x=x, y=y, line_width=line_width)
 
 	def parse_rect(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 		"""
