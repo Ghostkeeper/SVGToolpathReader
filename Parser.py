@@ -408,19 +408,15 @@ class Parser:
 			elif name == "skew":
 				if len(values) != 2:
 					continue #Invalid: Needs 2 arguments.
-				shear_x = math.cos(values[0] / 180 * math.pi) / math.sin(values[0] / 180 * math.pi)
-				shear_y = math.cos(values[1] / 180 * math.pi) / math.sin(values[1] / 180 * math.pi)
-				transformation = numpy.matmul(numpy.array(((1, shear_x, 0), (shear_y, 1, 0), (0, 0, 1))), transformation)
+				transformation = numpy.matmul(numpy.array(((1, math.tan(values[0] / 180 * math.pi), 0), (math.tan(values[1] / 180 * math.pi), 1, 0), (0, 0, 1))), transformation)
 			elif name == "skewx":
 				if len(values) != 1:
 					continue #Invalid: Needs 1 argument.
-				shear_x = math.cos(values[0] / 180 * math.pi) / math.sin(values[0] / 180 * math.pi)
-				transformation = numpy.matmul(numpy.array(((1, shear_x, 0), (0, 1, 0), (1, 0, 0))), transformation)
+				transformation = numpy.matmul(numpy.array(((1, math.tan(values[0] / 180 * math.pi), 0), (0, 1, 0), (1, 0, 0))), transformation)
 			elif name == "skewy":
 				if len(values) != 1:
 					continue #Invalid: Needs 1 argument.
-				shear_y = math.cos(values[0] / 180 * math.pi) / math.sin(values[0] / 180 * math.pi)
-				transformation = numpy.matmul(numpy.array(((1, 0, 0), (shear_y, 1, 0), (1, 0, 0))), transformation)
+				transformation = numpy.matmul(numpy.array(((1, 0, 0), (math.tan(values[0] / 180 * math.pi), 1, 0), (1, 0, 0))), transformation)
 			else:
 				continue #Invalid: Unrecognised transformation operation (or 3D).
 
