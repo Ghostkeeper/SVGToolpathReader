@@ -179,6 +179,8 @@ class Parser:
 			yield from self.parse_ellipse(element)
 		elif tag == "g":
 			yield from self.parse_g(element)
+		elif tag == "line":
+			yield from self.parse_line(element)
 		elif tag == "polygon":
 			yield from self.parse_polygon(element)
 		elif tag == "polyline":
@@ -246,6 +248,26 @@ class Parser:
 		"""
 		for child in element:
 			yield from self.parse(child)
+
+	def parse_line(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
+		"""
+		Parses the Line element.
+
+		This element creates a line from one coordinate to another.
+		:param element: The Line element.
+		:return: A sequence of commands necessary to print this element.
+		"""
+		line_width = self.try_float(element.attrib, "stroke-width", 0)
+		transformation = self.try_transform(element.attrib.get("transform", ""))
+		x1 = self.try_float(element.attrib, "x1", 0)
+		y1 = self.try_float(element.attrib, "y1", 0)
+		x2 = self.try_float(element.attrib, "x2", 0)
+		y2 = self.try_float(element.attrib, "y2", 0)
+
+		x1, y1 = self.apply_transformation(x1, y1, transformation)
+		x2, y2 = self.apply_transformation(x2, y2, transformation)
+		yield TravelCommand.TravelCommand(x=x1, y=y1)
+		yield ExtrudeCommand.ExtrudeCommand(x=x2, y=y2, line_width=line_width)
 
 	def parse_polygon(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 		"""
