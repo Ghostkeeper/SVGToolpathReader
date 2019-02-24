@@ -175,6 +175,8 @@ class Parser:
 		tag = element.tag[len(self._namespace):].lower()
 		if tag == "circle":
 			yield from self.parse_circle(element)
+		elif tag == "ellipse":
+			yield from self.parse_ellipse(element)
 		elif tag == "g":
 			yield from self.parse_g(element)
 		elif tag == "rect":
@@ -203,8 +205,32 @@ class Parser:
 		yield TravelCommand.TravelCommand(x=cx + dx, y=cy + dy)
 		yield from self.extrude_arc(cx, cy, r, 0, r, r, 0, False, False, 0, -r, line_width, transformation)
 		yield from self.extrude_arc(cx, cy, 0, -r, r, r, 0, False, False, -r, 0, line_width, transformation)
-		yield from self.extrude_arc(cx, cy, -r, 0, r, r, 0, False, False, 0, +r, line_width, transformation)
-		yield from self.extrude_arc(cx, cy, 0, r, r, r, 0, False, False, +r, 0, line_width, transformation)
+		yield from self.extrude_arc(cx, cy, -r, 0, r, r, 0, False, False, 0, r, line_width, transformation)
+		yield from self.extrude_arc(cx, cy, 0, r, r, r, 0, False, False, r, 0, line_width, transformation)
+
+	def parse_ellipse(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
+		"""
+		Parses the Ellipse element.
+		:param element: The Ellipse element.
+		:return: A sequence of commands necessary to print this element.
+		"""
+		cx = self.try_float(element.attrib, "cx", 0)
+		cy = self.try_float(element.attrib, "cy", 0)
+		rx = self.try_float(element.attrib, "rx", 0)
+		if rx == 0:
+			return #Ellipses without radius don't exist here.
+		ry = self.try_float(element.attrib, "ry", 0)
+		if ry == 0:
+			return
+		line_width = self.try_float(element.attrib, "stroke-width", 0)
+		transformation = self.try_transform(element.attrib.get("transform", ""))
+
+		dx, dy = self.apply_transformation(rx, 0, transformation)
+		yield TravelCommand.TravelCommand(x=cx + dx, y=cy + dy)
+		yield from self.extrude_arc(cx, cy, rx, 0, rx, ry, 0, False, False, 0, -ry, line_width, transformation)
+		yield from self.extrude_arc(cx, cy, 0, -ry, rx, ry, 0, False, False, -rx, 0, line_width, transformation)
+		yield from self.extrude_arc(cx, cy, -rx, 0, rx, ry, 0, False, False, 0, ry, line_width, transformation)
+		yield from self.extrude_arc(cx, cy, 0, ry, rx, ry, 0, False, False, rx, 0, line_width, transformation)
 
 	def parse_g(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 		"""
