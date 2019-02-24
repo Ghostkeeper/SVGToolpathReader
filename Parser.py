@@ -175,9 +175,9 @@ class Parser:
 		tag = element.tag[len(self._namespace):].lower()
 		if tag == "circle":
 			yield from self.parse_circle(element)
-		if tag == "g":
+		elif tag == "g":
 			yield from self.parse_g(element)
-		if tag == "rect":
+		elif tag == "rect":
 			yield from self.parse_rect(element)
 		elif tag == "svg":
 			yield from self.parse_svg(element)
