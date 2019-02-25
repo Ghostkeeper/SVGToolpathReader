@@ -468,6 +468,10 @@ class Parser:
 		d = d.replace(",", " ")
 		d = d.strip()
 
+		is_first = True #Track first movement command for Z command to return to beginning.
+		start_x = 0
+		start_y = 0
+
 		#Since all commands in the D attribute are single-character letters, we can split the thing on alpha characters and process each command separately.
 		commands = re.findall(r"[A-Za-z][^A-Za-z]*", d)
 		for command in commands:
@@ -475,6 +479,11 @@ class Parser:
 			command_name = command[0]
 			command = command[1:]
 			parameters = [float(match) for match in re.findall(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", command)] #Ignore parameters that are not properly formatted floats.
+
+			if is_first and command_name != "M" and command_name != "m":
+				start_x = x
+				start_y = y
+				is_first = False
 
 			#Process M and m commands first since they can have some of their parameters apply to different commands.
 			if command_name == "M": #Move.
@@ -498,15 +507,51 @@ class Parser:
 					command_name = "l" #The next parameters are interpreted as being relative lines.
 					parameters = parameters[2:]
 
-			if command_name == "L": #Line.
+			if command_name == "H": #Horizontal line.
+				while len(parameters) >= 1:
+					x = parameters[0]
+					tx, ty = self.apply_transformation(x, y, transformation)
+					yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
+					parameters = parameters[1:]
+			elif command_name == "h": #Relative horizontal line.
+				while len(parameters) >= 1:
+					x += parameters[0]
+					tx, ty = self.apply_transformation(x, y, transformation)
+					yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
+					parameters = parameters[1:]
+			elif command_name == "L": #Line.
 				while len(parameters) >= 2:
 					x = parameters[0]
 					y = parameters[1]
 					tx, ty = self.apply_transformation(x, y, transformation)
 					yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
 					parameters = parameters[2:]
+			elif command_name == "l": #Relative line.
+				while len(parameters) >= 2:
+					x += parameters[0]
+					y += parameters[1]
+					tx, ty = self.apply_transformation(x, y, transformation)
+					yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
+					parameters = parameters[2:]
+			elif command_name == "V": #Vertical line.
+				while len(parameters) >= 1:
+					y = parameters[0]
+					tx, ty = self.apply_transformation(x, y, transformation)
+					yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
+					parameters = parameters[1:]
+			elif command_name == "v": #Relative vertical line.
+				while len(parameters) >= 1:
+					y += parameters[0]
+					tx, ty = self.apply_transformation(x, y, transformation)
+					yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
+					parameters = parameters[1:]
+			elif command_name == "Z" or command_name == "z":
+				x = start_x
+				y = start_y
+				tx, ty = self.apply_transformation(x, y, transformation)
+				yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
 			else: #Unrecognised command, or M or m which we processed separately.
-				# TODO: Implement H, h, V, v, A, a, C, c, S, s, Q, q, T, t, Z and z.
+				# TODO: Implement A, a, C, c, S, s, Q, q, T, t, Z and z.
 				continue
 
 	def parse_polygon(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
