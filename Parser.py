@@ -218,8 +218,8 @@ class Parser:
 
 		#Implementation of https://www.w3.org/TR/SVG/implnote.html#ArcImplementationNotes to find centre of ellipse.
 		#Based off: https://stackoverflow.com/a/12329083
-		sin_rotation = math.sin(rotation)
-		cos_rotation = math.cos(rotation)
+		sin_rotation = math.sin(rotation / 180 * math.pi)
+		cos_rotation = math.cos(rotation / 180 * math.pi)
 		x1 = cos_rotation * (start_x - end_x) / 2.0 + sin_rotation * (start_y - end_y) / 2.0
 		y1 = cos_rotation * (start_y - end_y) / 2.0 + sin_rotation * (start_x - end_x) / 2.0
 		lambda_multiplier = (x1 * x1) / (rx * rx) + (y1 * y1) / (ry * ry)
