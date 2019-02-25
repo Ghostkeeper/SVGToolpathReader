@@ -7,6 +7,7 @@
 import cura.Settings.ExtruderManager #To get settings from the active extruder.
 import math #Computing curves and such.
 import numpy #Transformation matrices.
+import re #Parsing D attributes of paths.
 import typing
 import UM.Logger #To log parse errors and warnings.
 
@@ -36,6 +37,21 @@ class Parser:
 		position = numpy.array(((float(x), float(y), 1)))
 		new_position = numpy.matmul(transformation, position)
 		return new_position[0], new_position[1]
+
+	def consume_float(self, d) -> typing.Tuple[float, str]:
+		"""
+		Take a floating point number from a string, if it's in front.
+
+		If there is no floating point in front, this raises a ValueError.
+		:param d: A (part of a) d attribute of a path.
+		:return: A tuple of the first floating point number, and the string with
+		the floating point number consumed.
+		"""
+		number = re.search(r"^[-+]?\d*\.?\d+([eE][-+]?\d+)?", d)
+		if not number:
+			raise ValueError("This string doesn't start with a number: " + d[:10])
+		number = number.group(0)
+		return float(number), d[len(number):]
 
 	def convert_float(self, dictionary, attribute, default: float) -> float:
 		"""
@@ -359,6 +375,8 @@ class Parser:
 			yield from self.parse_g(element)
 		elif tag == "line":
 			yield from self.parse_line(element)
+		elif tag == "path":
+			yield from self.parse_path(element)
 		elif tag == "polygon":
 			yield from self.parse_polygon(element)
 		elif tag == "polyline":
@@ -446,6 +464,81 @@ class Parser:
 		x2, y2 = self.apply_transformation(x2, y2, transformation)
 		yield TravelCommand.TravelCommand(x=x1, y=y1)
 		yield ExtrudeCommand.ExtrudeCommand(x=x2, y=y2, line_width=line_width)
+
+	def parse_path(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
+		"""
+		Parses the Path element.
+
+		This element creates arbitrary curves. It is as powerful as all the
+		other elements put together!
+		:param element: The Path element.
+		:return: A sequence of commands necessary to print this element.
+		"""
+		line_width = self.convert_float(element.attrib, "stroke-width", 0)
+		transformation = self.convert_transform(element.attrib.get("transform", ""))
+		d = element.attrib.get("d", "")
+		x = 0 #Starting position.
+		y = 0
+
+		d = d.replace(",", " ")
+		d = d.strip()
+
+		#We're going to consume the D parameter front-to-back, which re-creates a slightly smaller string every time.
+		#This is quadratic! TODO: Fix that up.
+		while d != "":
+			if d[0] == "M": #Move.
+				d = d[1:].strip()
+				try:
+					new_x, d = self.consume_float(d)
+					d = d.strip()
+					new_y, d = self.consume_float(d)
+					d = d.strip()
+				except ValueError:
+					continue #Not enough parameters to the M command. Skip it.
+				x = new_x
+				y = new_y
+				tx, ty = self.apply_transformation(x, y, transformation)
+				yield TravelCommand.TravelCommand(x=tx, y=ty)
+				try:
+					_, _ = self.consume_float(d) #See if next up is another float.
+					#No error? Then it is a new float. Add an L command in front so that next coordinate pairs get interpreted as lines.
+					d = "L" + d
+				except ValueError: #Not another coordinate pair. Just continue parsing the next command then.
+					continue
+			elif d[0] == "m": #Move (relative).
+				d = d[1:].strip()
+				try:
+					dx, d = self.consume_float(d)
+					d = d.strip()
+					dy, d = self.consume_float(d)
+				except ValueError:
+					continue #Not enough parameters to the m command. Skip it.
+				x += dx
+				y += dy
+				tx, ty = self.apply_transformation(x, y, transformation)
+				yield TravelCommand.TravelCommand(x=tx, y=ty)
+				try:
+					_, _ = self.consume_float(d) #See if next up is another float.
+					#No error? Then it is a new float. Add an l command in front so that next coordinate pairs get interpreted as relative lines.
+					d = "l" + d
+				except ValueError: #Not another coordinate pair. Just continue parsing the next command then.
+					continue
+			elif d[0] == "L": #Line.
+				d = d[1:].strip()
+				try:
+					while True: #Until interrupted by ValueError.
+						new_x, new_d = self.consume_float(d)
+						new_d = new_d.strip()
+						new_y, d = self.consume_float(new_d)
+						x = new_x
+						y = new_y
+						tx, ty = self.apply_transformation(x, y, transformation)
+						yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
+				except ValueError:
+					continue #Not enough parameters for another coordinate pair. Skip it.
+			else: #Unrecognised command.
+				#TODO: Implement H, h, V, v, A, a, C, c, S, s, Q, q, T, t, Z and z.
+				d = d[1:].strip()
 
 	def parse_polygon(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 		"""
