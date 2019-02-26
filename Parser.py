@@ -289,6 +289,81 @@ class Parser:
 			start_angle = new_angle
 		yield ExtrudeCommand.ExtrudeCommand(end_tx, end_ty, line_width)
 
+	def extrude_cubic(self, start_x, start_y, handle1_x, handle1_y, handle2_x, handle2_y, end_x, end_y, line_width, transformation) -> typing.Generator[ExtrudeCommand.ExtrudeCommand, None, None]:
+		"""
+		Yields points of a cubic (Bézier) arc spaced at the required resolution.
+
+		A cubic arc takes three adjacent line segments (from start to handle1,
+		from handle1 to handle2 and from handle2 to end) and varies a parameter
+		p. Along the first and second line segment, a point is drawn at the
+		ratio p between the segment's start and end. A line segment is drawn
+		between these sliding points, and another point is made at a ratio of p
+		along this line segment. That point follows a quadratic curve. Then the
+		same thing is done for the second and third line segments, creating
+		another point that follows a quadratic curve. Between these two points,
+		a last line segment is drawn and a final point is drawn at a ratio of p
+		along this line segment. As p varies from 0 to 1, this final point moves
+		along the cubic curve.
+		:param start_x: The X coordinate where the curve starts.
+		:param start_y: The Y coordinate where the curve starts.
+		:param handle1_x: The X coordinate of the first handle.
+		:param handle1_y: The Y coordinate of the first handle.
+		:param handle2_x: The X coordinate of the second handle.
+		:param handle2_y: The Y coordinate of the second handle.
+		:param end_x: The X coordinate where the curve ends.
+		:param end_y: The Y coordinate where the curve ends.
+		:param line_width: The width of the line to extrude.
+		:param transformation: A transformation matrix to apply to the curve.
+		:return: A sequence of commands necessary to print this curve.
+		"""
+		current_x = start_x
+		current_y = start_y
+		current_tx, current_ty = self.apply_transformation(current_x, current_y, transformation)
+		end_tx, end_ty = self.apply_transformation(end_x, end_y, transformation)
+		p_min = 0
+		p_max = 1
+		while (current_x - end_tx) * (current_tx - end_tx) + (current_ty - end_ty) * (current_ty - end_ty) > self.resolution * self.resolution: #Keep stepping until we're closer than one step from our goal.
+			#Find the value for p that gets us exactly one step away (after transformation).
+			new_x = current_x
+			new_y = current_y
+			new_error = self.resolution
+			new_p = p_min
+			while abs(new_error) > 0.001: #Continue until 1 micron error.
+				#Graduate towards smaller steps first.
+				#This is necessary because the cubic curve can loop back on itself and the halfway point may be beyond the intersection.
+				#If we were to try a high p value that happens to fall very close to the starting point due to the loop,
+				#we would think that the p is not high enough even though it is actually too high and thus skip the loop.
+				#With cubic curves, that looping point can never occur at 1/4 of the curve or earlier, so try 1/4 of the parameter.
+				new_p = (p_min * 3 + p_max) / 4
+				#Calculate the three points on the linear segments.
+				linear1_x = start_x + new_p * (handle1_x - start_x)
+				linear1_y = start_y + new_p * (handle1_y - start_y)
+				linear2_x = handle1_x + new_p * (handle2_x - handle1_x)
+				linear2_y = handle1_y + new_p * (handle2_y - handle1_y)
+				linear3_x = handle2_x + new_p * (end_x - handle2_x)
+				linear3_y = handle2_y + new_p * (end_y - handle2_y)
+				#Calculate the two points on the quadratic curves.
+				quadratic1_x = linear1_x + new_p * (linear2_x - linear1_x)
+				quadratic1_y = linear1_y + new_p * (linear2_y - linear1_y)
+				quadratic2_x = linear2_x + new_p * (linear3_x - linear2_x)
+				quadratic2_y = linear2_y + new_p * (linear3_y - linear2_y)
+				#Interpolate on the line between those points to get the final cubic position for new_p.
+				new_x = quadratic1_x + new_p * (quadratic2_x - quadratic1_x)
+				new_y = quadratic1_y + new_p * (quadratic2_y - quadratic1_y)
+				new_tx, new_ty = self.apply_transformation(new_x, new_y, transformation)
+				new_error = math.sqrt((new_tx - current_tx) * (new_tx - current_tx) + (new_ty - current_ty) * (new_ty - current_ty)) - self.resolution
+				if new_error > 0: #Step is too far.
+					p_max = new_p
+				else: #Step is not far enough.
+					p_min = new_p
+			current_x = new_x
+			current_y = new_y
+			current_tx, current_ty = self.apply_transformation(current_x, current_y, transformation)
+			yield ExtrudeCommand.ExtrudeCommand(current_tx, current_ty, line_width)
+			p_min = new_p
+			p_max = 1
+		yield ExtrudeCommand.ExtrudeCommand(end_tx, end_ty, line_width) #And the last step to end exactly on our goal.
+
 	def extrude_quadratic(self, start_x, start_y, handle_x, handle_y, end_x, end_y, line_width, transformation) -> typing.Generator[ExtrudeCommand.ExtrudeCommand, None, None]:
 		"""
 		Yields points of a quadratic arc spaced at the required resolution.
@@ -344,7 +419,7 @@ class Parser:
 				linear1_y = start_y + new_p * (handle_y - start_y)
 				linear2_x = handle_x + new_p * (end_x - handle_x)
 				linear2_y = handle_y + new_p * (end_y - handle_y)
-				#Interpolate on the line between those points to get the final position for new_p.
+				#Interpolate on the line between those points to get the final quadratic position for new_p.
 				new_x = linear1_x + new_p * (linear2_x - linear1_x)
 				new_y = linear1_y + new_p * (linear2_y - linear1_y)
 				new_tx, new_ty = self.apply_transformation(new_x, new_y, transformation)
@@ -610,6 +685,16 @@ class Parser:
 					x += parameters[5]
 					y += parameters[6]
 					parameters = parameters[7:]
+			elif command_name == "C": #Cubic curve (Bézier).
+				while len(parameters) >= 6:
+					yield from self.extrude_cubic(start_x=x, start_y=y,
+					                              handle1_x=parameters[0], handle1_y=parameters[1],
+					                              handle2_x=parameters[2], handle2_y=parameters[3],
+					                              end_x=parameters[4], end_y=parameters[5],
+					                              line_width=line_width, transformation=transformation)
+					x = parameters[4]
+					y = parameters[5]
+					parameters = parameters[6:]
 			elif command_name == "H": #Horizontal line.
 				while len(parameters) >= 1:
 					x = parameters[0]
@@ -700,7 +785,7 @@ class Parser:
 				tx, ty = self.apply_transformation(x, y, transformation)
 				yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
 			else: #Unrecognised command, or M or m which we processed separately.
-				# TODO: Implement C, c, S, s.
+				# TODO: Implement c, S, s.
 				pass
 
 			if command_name != "Q" and command_name != "q" and command_name != "T" and command_name != "t":
