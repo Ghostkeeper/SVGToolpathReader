@@ -619,6 +619,8 @@ class Parser:
 		start_y = 0
 		previous_quadratic_x = 0 #Track the previous curve handle of Q commands for the T command.
 		previous_quadratic_y = 0 #This is always absolute!
+		previous_cubic_x = 0 #And for the second cubic handle of C commands for the S command, too.
+		previous_cubic_y = 0
 
 		#Since all commands in the D attribute are single-character letters, we can split the thing on alpha characters and process each command separately.
 		commands = re.findall(r"[A-Za-z][^A-Za-z]*", d)
@@ -687,9 +689,11 @@ class Parser:
 					parameters = parameters[7:]
 			elif command_name == "C": #Cubic curve (Bézier).
 				while len(parameters) >= 6:
+					previous_cubic_x = parameters[2]
+					previous_cubic_y = parameters[3]
 					yield from self.extrude_cubic(start_x=x, start_y=y,
 					                              handle1_x=parameters[0], handle1_y=parameters[1],
-					                              handle2_x=parameters[2], handle2_y=parameters[3],
+					                              handle2_x=previous_cubic_x, handle2_y=previous_cubic_y,
 					                              end_x=parameters[4], end_y=parameters[5],
 					                              line_width=line_width, transformation=transformation)
 					x = parameters[4]
@@ -697,9 +701,11 @@ class Parser:
 					parameters = parameters[6:]
 			elif command_name == "c": #Relative cubic curve (Bézier).
 				while len(parameters) >= 6:
+					previous_cubic_x = x + parameters[2]
+					previous_cubic_y = y + parameters[3]
 					yield from self.extrude_cubic(start_x=x, start_y=y,
 					                              handle1_x=x + parameters[0], handle1_y=y + parameters[1],
-					                              handle2_x=x + parameters[2], handle2_y=y + parameters[3],
+					                              handle2_x=previous_cubic_x, handle2_y=previous_cubic_y,
 					                              end_x=x + parameters[4], end_y=y + parameters[5],
 					                              line_width=line_width, transformation=transformation)
 					x += parameters[4]
@@ -753,6 +759,36 @@ class Parser:
 					x += parameters[2]
 					y += parameters[3]
 					parameters = parameters[4:]
+			elif command_name == "S": #Smooth cubic curve (Bézier).
+				while len(parameters) >= 4:
+					#Mirror the handle around the current position.
+					handle1_x = x + (x - previous_cubic_x)
+					handle1_y = y + (y - previous_cubic_y)
+					previous_cubic_x = parameters[0] #For the next curve, store the coordinates of the second handle.
+					previous_cubic_y = parameters[1]
+					yield from self.extrude_cubic(start_x=x, start_y=y,
+					                              handle1_x=handle1_x, handle1_y=handle1_y,
+					                              handle2_x=previous_cubic_x, handle2_y=previous_cubic_y,
+					                              end_x=parameters[2], end_y=parameters[3],
+					                              line_width=line_width, transformation=transformation)
+					x = parameters[2]
+					y = parameters[3]
+					parameters = parameters[4:]
+			elif command_name == "s": #Relative smooth cubic curve (Bézier).
+				while len(parameters) >= 4:
+					#Mirror the handle around the current position.
+					handle1_x = x + (x - previous_cubic_x)
+					handle1_y = y + (y - previous_cubic_y)
+					previous_cubic_x = x + parameters[0] #For the next curve, store the coordinates of the second handle.
+					previous_cubic_y = y + parameters[1]
+					yield from self.extrude_cubic(start_x=x, start_y=y,
+					                              handle1_x=handle1_x, handle1_y=handle1_y,
+					                              handle2_x=previous_cubic_x, handle2_y=previous_cubic_y,
+					                              end_x=x + parameters[2], end_y=y + parameters[3],
+					                              line_width=line_width, transformation=transformation)
+					x += parameters[2]
+					y += parameters[3]
+					parameters = parameters[4:]
 			elif command_name == "T": #Smooth quadratic curve.
 				while len(parameters) >= 2:
 					#Mirror the handle around the current position.
@@ -795,12 +831,14 @@ class Parser:
 				tx, ty = self.apply_transformation(x, y, transformation)
 				yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
 			else: #Unrecognised command, or M or m which we processed separately.
-				# TODO: Implement S, s.
 				pass
 
 			if command_name != "Q" and command_name != "q" and command_name != "T" and command_name != "t":
 				previous_quadratic_x = x
 				previous_quadratic_y = y
+			if command_name != "C" and command_name != "c" and command_name != "S" and command_name != "s":
+				previous_cubic_x = x
+				previous_cubic_y = y
 
 	def parse_polygon(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 		"""
