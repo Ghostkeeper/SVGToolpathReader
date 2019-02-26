@@ -703,7 +703,7 @@ class Parser:
 				# TODO: Implement C, c, S, s.
 				pass
 
-			if command_name != "Q" and command_name != "q":
+			if command_name != "Q" and command_name != "q" and command_name != "T" and command_name != "t":
 				previous_quadratic_x = x
 				previous_quadratic_y = y
 
