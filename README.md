@@ -22,6 +22,16 @@ Not all elements of the SVG specification will be printed. For some things, this
 * SVG
 * rect (x, y, width, height, rx, ry)
 * circle (cx, cy, r)
+* g
+* ellipse
+* polygon
+* polyline
+* line
+* path
+
+The following attributes are supported for each of these:
+* stroke-width
+* transform
 
 Line Widths
 -----------
