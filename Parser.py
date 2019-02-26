@@ -695,6 +695,16 @@ class Parser:
 					x = parameters[4]
 					y = parameters[5]
 					parameters = parameters[6:]
+			elif command_name == "c": #Relative cubic curve (Bézier).
+				while len(parameters) >= 6:
+					yield from self.extrude_cubic(start_x=x, start_y=y,
+					                              handle1_x=x + parameters[0], handle1_y=y + parameters[1],
+					                              handle2_x=x + parameters[2], handle2_y=y + parameters[3],
+					                              end_x=x + parameters[4], end_y=y + parameters[5],
+					                              line_width=line_width, transformation=transformation)
+					x += parameters[4]
+					y += parameters[5]
+					parameters = parameters[6:]
 			elif command_name == "H": #Horizontal line.
 				while len(parameters) >= 1:
 					x = parameters[0]
@@ -785,7 +795,7 @@ class Parser:
 				tx, ty = self.apply_transformation(x, y, transformation)
 				yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
 			else: #Unrecognised command, or M or m which we processed separately.
-				# TODO: Implement c, S, s.
+				# TODO: Implement S, s.
 				pass
 
 			if command_name != "Q" and command_name != "q" and command_name != "T" and command_name != "t":
