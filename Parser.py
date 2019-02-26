@@ -289,6 +289,80 @@ class Parser:
 			start_angle = new_angle
 		yield ExtrudeCommand.ExtrudeCommand(end_tx, end_ty, line_width)
 
+	def extrude_quadratic(self, start_x, start_y, handle_x, handle_y, end_x, end_y, line_width, transformation) -> typing.Generator[ExtrudeCommand.ExtrudeCommand, None, None]:
+		"""
+		Yields points of a quadratic arc spaced at the required resolution.
+
+		A quadratic arc takes two adjacent line segments (from start to handle
+		and from handle to end) and varies a parameter p. Along each of these
+		two line segments, a point is drawn at the ratio p between the segment's
+		start and end. A line segment is drawn between these sliding points, and
+		another point is made at a ratio of p along this line segment. As p
+		varies from 0 to 1, this last point moves along the quadratic curve.
+		:param start_x: The X coordinate where the curve starts.
+		:param start_y: The Y coordinate where the curve starts.
+		:param handle_x: The X coordinate of the handle halfway along the curve.
+		:param handle_y: The Y coordinate of the handle halfway along the curve.
+		:param end_x: The X coordinate where the curve ends.
+		:param end_y: The Y coordinate where the curve ends.
+		:param line_width: The width of the line to extrude.
+		:param transformation: A transformation matrix to apply to the curve.
+		:return: A sequence of commands necessary to print this curve.
+		"""
+		end_tx, end_ty = self.apply_transformation(end_x, end_y, transformation)
+		#First check if handle lies exactly between start and end. If so, we just draw one line from start to finish.
+		if start_x == end_x:
+			if handle_x == start_x and (start_y <= handle_y <= end_y or start_y >= handle_y >= end_y):
+				yield ExtrudeCommand.ExtrudeCommand(end_tx, end_ty, line_width)
+				return
+		elif start_y == end_y:
+			if handle_y == start_y and (start_x <= handle_x <= end_x or start_x >= handle_x >= end_x):
+				yield ExtrudeCommand.ExtrudeCommand(end_tx, end_ty, line_width)
+				return
+		else:
+			slope_deviation = (handle_x - start_x) / (end_x - start_x) - (handle_y - start_y) / (end_y - start_y)
+			if abs(slope_deviation) == 0:
+				if start_x <= handle_x <= end_x or start_x >= handle_x >= end_x:
+					yield ExtrudeCommand.ExtrudeCommand(end_tx, end_ty, line_width)
+					return
+
+		current_x = start_x
+		current_y = start_y
+		current_tx, current_ty = self.apply_transformation(current_x, current_y, transformation)
+		p_min = 0
+		p_max = 1
+		while (current_tx - end_tx) * (current_tx - end_tx) + (current_ty - end_ty) * (current_ty - end_ty) > self.resolution * self.resolution: #Keep stepping until we're closer than one step from our goal.
+			#Find the value for p that gets us exactly one step away (after transformation).
+			new_x = current_x
+			new_y = current_y
+			new_error = self.resolution
+			new_p = p_min
+			while abs(new_error) > 0.001: #Continue until 1 micron error.
+				new_p = (p_min + p_max) / 2
+				#Calculate the two points on the linear segments.
+				linear1_x = start_x + new_p * (handle_x - start_x)
+				linear1_y = start_y + new_p * (handle_y - start_y)
+				linear2_x = handle_x + new_p * (end_x - handle_x)
+				linear2_y = handle_y + new_p * (end_y - handle_y)
+				#Interpolate on the line between those points to get the final position for new_p.
+				new_x = linear1_x + new_p * (linear2_x - linear1_x)
+				new_y = linear1_y + new_p * (linear2_y - linear1_y)
+				new_tx, new_ty = self.apply_transformation(new_x, new_y, transformation)
+				UM.Logger.Logger.log("d", "----Trying: {x},{y}".format(x=new_x, y=new_y))
+				new_error = math.sqrt((new_tx - current_tx) * (new_tx - current_tx) + (new_ty - current_ty) * (new_ty - current_ty)) - self.resolution
+				if new_error > 0: #Step is too far.
+					p_max = new_p
+				else: #Step is not far enough.
+					p_min = new_p
+			current_x = new_x
+			current_y = new_y
+			current_tx, current_ty = self.apply_transformation(current_x, current_y, transformation)
+			yield ExtrudeCommand.ExtrudeCommand(current_tx, current_ty, line_width)
+			UM.Logger.Logger.log("d", "====Extruding to {x},{y}".format(x=current_tx, y=current_ty))
+			p_min = new_p
+			p_max = 1
+		yield ExtrudeCommand.ExtrudeCommand(end_tx, end_ty, line_width) #And the last step to end exactly on our goal.
+
 	def inheritance(self, element) -> None:
 		"""
 		Pass inherited properties of elements down through the node tree.
@@ -562,6 +636,13 @@ class Parser:
 					tx, ty = self.apply_transformation(x, y, transformation)
 					yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
 					parameters = parameters[2:]
+			elif command_name == "Q": #Quadratic curve.
+				while len(parameters) >= 4:
+					yield from self.extrude_quadratic(start_x=x, start_y=y,
+					                                  handle_x=parameters[0], handle_y=parameters[1],
+					                                  end_x=parameters[2], end_y=parameters[3],
+					                                  line_width=line_width, transformation=transformation)
+					parameters = parameters[2:] #We need 4 parameters, but only consume the first 2. The next 2 get reused as the first 2 for the next curve.
 			elif command_name == "V": #Vertical line.
 				while len(parameters) >= 1:
 					y = parameters[0]
