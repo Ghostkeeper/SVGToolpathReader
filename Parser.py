@@ -542,6 +542,8 @@ class Parser:
 		is_first = True #Track first movement command for Z command to return to beginning.
 		start_x = 0
 		start_y = 0
+		previous_quadratic_x = 0 #Track the previous curve handle of Q commands for the T command.
+		previous_quadratic_y = 0 #This is always absolute!
 
 		#Since all commands in the D attribute are single-character letters, we can split the thing on alpha characters and process each command separately.
 		commands = re.findall(r"[A-Za-z][^A-Za-z]*", d)
@@ -636,8 +638,10 @@ class Parser:
 					parameters = parameters[2:]
 			elif command_name == "Q": #Quadratic curve.
 				while len(parameters) >= 4:
+					previous_quadratic_x = parameters[0]
+					previous_quadratic_y = parameters[1]
 					yield from self.extrude_quadratic(start_x=x, start_y=y,
-					                                  handle_x=parameters[0], handle_y=parameters[1],
+					                                  handle_x=previous_quadratic_x, handle_y=previous_quadratic_y,
 					                                  end_x=parameters[2], end_y=parameters[3],
 					                                  line_width=line_width, transformation=transformation)
 					x = parameters[2]
@@ -645,13 +649,39 @@ class Parser:
 					parameters = parameters[4:]
 			elif command_name == "q": #Relative quadratic curve.
 				while len(parameters) >= 4:
+					previous_quadratic_x = x + parameters[0]
+					previous_quadratic_y = y + parameters[1]
 					yield from self.extrude_quadratic(start_x=x, start_y=y,
-					                                  handle_x=x + parameters[0], handle_y=y + parameters[1],
+					                                  handle_x=previous_quadratic_x, handle_y=previous_quadratic_y,
 					                                  end_x=x + parameters[2], end_y=y + parameters[3],
 					                                  line_width=line_width, transformation=transformation)
 					x += parameters[2]
 					y += parameters[3]
 					parameters = parameters[4:]
+			elif command_name == "T": #Smooth quadratic curve.
+				while len(parameters) >= 2:
+					#Mirror the handle around the current position.
+					previous_quadratic_x = x + (x - previous_quadratic_x)
+					previous_quadratic_y = y + (y - previous_quadratic_y)
+					yield from self.extrude_quadratic(start_x=x, start_y=y,
+					                                  handle_x=previous_quadratic_x, handle_y=previous_quadratic_y,
+					                                  end_x=parameters[0], end_y=parameters[1],
+					                                  line_width=line_width, transformation=transformation)
+					x = parameters[0]
+					y = parameters[1]
+					parameters = parameters[2:]
+			elif command_name == "t": #Relative smooth quadratic curve.
+				while len(parameters) >= 2:
+					#Mirror the handle around the current position.
+					previous_quadratic_x = x + (x - previous_quadratic_x)
+					previous_quadratic_y = y + (y - previous_quadratic_y)
+					yield from self.extrude_quadratic(start_x=x, start_y=y,
+					                                  handle_x=previous_quadratic_x, handle_y=previous_quadratic_y,
+					                                  end_x=x + parameters[0], end_y=y + parameters[1],
+					                                  line_width=line_width, transformation=transformation)
+					x += parameters[0]
+					y += parameters[1]
+					parameters = parameters[2:]
 			elif command_name == "V": #Vertical line.
 				while len(parameters) >= 1:
 					y = parameters[0]
@@ -670,8 +700,12 @@ class Parser:
 				tx, ty = self.apply_transformation(x, y, transformation)
 				yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
 			else: #Unrecognised command, or M or m which we processed separately.
-				# TODO: Implement C, c, S, s, Q, q, T, t.
-				continue
+				# TODO: Implement C, c, S, s.
+				pass
+
+			if command_name != "Q" and command_name != "q":
+				previous_quadratic_x = x
+				previous_quadratic_y = y
 
 	def parse_polygon(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 		"""
