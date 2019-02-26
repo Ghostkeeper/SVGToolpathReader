@@ -212,8 +212,10 @@ class Parser:
 		if rx == 0 or ry == 0: #Invalid radius. Skip this arc.
 			yield ExtrudeCommand.ExtrudeCommand(end_x, end_y, line_width)
 			return
-		if (end_x - start_x) * (end_x - start_x) + (end_y - start_y) * (end_y - start_y) <= self.resolution * self.resolution: #Too small to fit with higher resolution.
-			yield ExtrudeCommand.ExtrudeCommand(end_x, end_y, line_width)
+		start_tx, start_ty = self.apply_transformation(start_x, start_y, transformation)
+		end_tx, end_ty = self.apply_transformation(end_x, end_y, transformation)
+		if (end_tx - start_tx) * (end_tx - start_tx) + (end_ty - start_ty) * (end_ty - start_ty) <= self.resolution * self.resolution: #Too small to fit with higher resolution.
+			yield ExtrudeCommand.ExtrudeCommand(end_tx, end_ty, line_width)
 			return
 
 		#Implementation of https://www.w3.org/TR/SVG/implnote.html#ArcImplementationNotes to find centre of ellipse.
@@ -256,8 +258,7 @@ class Parser:
 		current_x = start_x
 		current_y = start_y
 		current_x_transformed, current_y_transformed = self.apply_transformation(current_x, current_y, transformation)
-		end_x_transformed, end_y_transformed = self.apply_transformation(end_x, end_y, transformation)
-		while (current_x_transformed - end_x_transformed) * (current_x_transformed - end_x_transformed) + (current_y_transformed - end_y_transformed) * (current_y_transformed - end_y_transformed) > self.resolution * self.resolution: #While further than the resolution, make new points.
+		while (current_x_transformed - end_tx) * (current_x_transformed - end_tx) + (current_y_transformed - end_ty) * (current_y_transformed - end_ty) > self.resolution * self.resolution: #While further than the resolution, make new points.
 			lower_angle = start_angle #Regardless of in which direction the delta_angle goes.
 			upper_angle = end_angle
 			current_error = self.resolution
@@ -286,8 +287,7 @@ class Parser:
 			current_x_transformed, current_y_transformed = self.apply_transformation(current_x, current_y, transformation)
 			yield ExtrudeCommand.ExtrudeCommand(current_x_transformed, current_y_transformed, line_width)
 			start_angle = new_angle
-		end_x_transformed, end_y_transformed = self.apply_transformation(end_x, end_y, transformation)
-		yield ExtrudeCommand.ExtrudeCommand(end_x_transformed, end_y_transformed, line_width)
+		yield ExtrudeCommand.ExtrudeCommand(end_tx, end_ty, line_width)
 
 	def inheritance(self, element) -> None:
 		"""
