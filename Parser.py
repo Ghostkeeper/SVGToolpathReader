@@ -348,7 +348,6 @@ class Parser:
 				new_x = linear1_x + new_p * (linear2_x - linear1_x)
 				new_y = linear1_y + new_p * (linear2_y - linear1_y)
 				new_tx, new_ty = self.apply_transformation(new_x, new_y, transformation)
-				UM.Logger.Logger.log("d", "----Trying: {x},{y}".format(x=new_x, y=new_y))
 				new_error = math.sqrt((new_tx - current_tx) * (new_tx - current_tx) + (new_ty - current_ty) * (new_ty - current_ty)) - self.resolution
 				if new_error > 0: #Step is too far.
 					p_max = new_p
@@ -358,7 +357,6 @@ class Parser:
 			current_y = new_y
 			current_tx, current_ty = self.apply_transformation(current_x, current_y, transformation)
 			yield ExtrudeCommand.ExtrudeCommand(current_tx, current_ty, line_width)
-			UM.Logger.Logger.log("d", "====Extruding to {x},{y}".format(x=current_tx, y=current_ty))
 			p_min = new_p
 			p_max = 1
 		yield ExtrudeCommand.ExtrudeCommand(end_tx, end_ty, line_width) #And the last step to end exactly on our goal.
