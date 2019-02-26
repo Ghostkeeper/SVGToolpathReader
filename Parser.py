@@ -257,8 +257,8 @@ class Parser:
 		#Use Newton's method to find segments of the required length along the ellipsis, basically using binary search.
 		current_x = start_x
 		current_y = start_y
-		current_x_transformed, current_y_transformed = self.apply_transformation(current_x, current_y, transformation)
-		while (current_x_transformed - end_tx) * (current_x_transformed - end_tx) + (current_y_transformed - end_ty) * (current_y_transformed - end_ty) > self.resolution * self.resolution: #While further than the resolution, make new points.
+		current_tx, current_ty = self.apply_transformation(current_x, current_y, transformation)
+		while (current_tx - end_tx) * (current_tx - end_tx) + (current_ty - end_ty) * (current_ty - end_ty) > self.resolution * self.resolution: #While further than the resolution, make new points.
 			lower_angle = start_angle #Regardless of in which direction the delta_angle goes.
 			upper_angle = end_angle
 			current_error = self.resolution
@@ -274,9 +274,9 @@ class Parser:
 				new_y = sin_rotation * new_x_temp + cos_rotation * new_y
 				new_x += cx
 				new_y += cy
-				new_x_transformed, new_y_transformed = self.apply_transformation(new_x, new_y, transformation)
-				current_x_transformed, current_y_transformed = self.apply_transformation(current_x, current_y, transformation)
-				current_step = math.sqrt((new_x_transformed - current_x_transformed) * (new_x_transformed - current_x_transformed) + (new_y_transformed - current_y_transformed) * (new_y_transformed - current_y_transformed))
+				new_tx, new_ty = self.apply_transformation(new_x, new_y, transformation)
+				current_tx, current_ty = self.apply_transformation(current_x, current_y, transformation)
+				current_step = math.sqrt((new_tx - current_tx) * (new_tx - current_tx) + (new_ty - current_ty) * (new_ty - current_ty))
 				current_error = current_step - self.resolution
 				if current_error > 0: #Step is too far.
 					upper_angle = new_angle
@@ -284,8 +284,8 @@ class Parser:
 					lower_angle = new_angle
 			current_x = new_x
 			current_y = new_y
-			current_x_transformed, current_y_transformed = self.apply_transformation(current_x, current_y, transformation)
-			yield ExtrudeCommand.ExtrudeCommand(current_x_transformed, current_y_transformed, line_width)
+			current_tx, current_ty = self.apply_transformation(current_x, current_y, transformation)
+			yield ExtrudeCommand.ExtrudeCommand(current_tx, current_ty, line_width)
 			start_angle = new_angle
 		yield ExtrudeCommand.ExtrudeCommand(end_tx, end_ty, line_width)
 
