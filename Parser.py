@@ -645,6 +645,15 @@ class Parser:
 					x = parameters[2]
 					y = parameters[3]
 					parameters = parameters[4:]
+			elif command_name == "q": #Relative quadratic curve.
+				while len(parameters) >= 4:
+					yield from self.extrude_quadratic(start_x=x, start_y=y,
+					                                  handle_x=x + parameters[0], handle_y=y + parameters[1],
+					                                  end_x=x + parameters[2], end_y=y + parameters[3],
+					                                  line_width=line_width, transformation=transformation)
+					x += parameters[2]
+					y += parameters[3]
+					parameters = parameters[4:]
 			elif command_name == "V": #Vertical line.
 				while len(parameters) >= 1:
 					y = parameters[0]
