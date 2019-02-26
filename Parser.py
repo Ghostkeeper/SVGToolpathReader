@@ -223,9 +223,8 @@ class Parser:
 		x1 = cos_rotation * (start_x - end_x) / 2.0 + sin_rotation * (start_y - end_y) / 2.0
 		y1 = cos_rotation * (start_y - end_y) / 2.0 + sin_rotation * (start_x - end_x) / 2.0
 		lambda_multiplier = (x1 * x1) / (rx * rx) + (y1 * y1) / (ry * ry)
-		if lambda_multiplier > 1:
-			rx *= math.sqrt(lambda_multiplier)
-			ry *= math.sqrt(lambda_multiplier)
+		rx *= math.sqrt(lambda_multiplier)
+		ry *= math.sqrt(lambda_multiplier)
 		sum_squares = rx * y1 * rx * y1 + ry * x1 * ry * x1
 		coefficient = math.sqrt(abs((rx * ry * rx * ry - sum_squares) / sum_squares))
 		if large_arc == sweep_flag:
