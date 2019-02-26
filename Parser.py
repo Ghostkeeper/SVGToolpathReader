@@ -642,7 +642,9 @@ class Parser:
 					                                  handle_x=parameters[0], handle_y=parameters[1],
 					                                  end_x=parameters[2], end_y=parameters[3],
 					                                  line_width=line_width, transformation=transformation)
-					parameters = parameters[2:] #We need 4 parameters, but only consume the first 2. The next 2 get reused as the first 2 for the next curve.
+					x = parameters[2]
+					y = parameters[3]
+					parameters = parameters[4:]
 			elif command_name == "V": #Vertical line.
 				while len(parameters) >= 1:
 					y = parameters[0]
