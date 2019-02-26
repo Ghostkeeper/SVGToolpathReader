@@ -507,7 +507,37 @@ class Parser:
 					command_name = "l" #The next parameters are interpreted as being relative lines.
 					parameters = parameters[2:]
 
-			if command_name == "H": #Horizontal line.
+			if command_name == "A": #Elliptical arc.
+				while len(parameters) >= 7:
+					if (parameters[3] != 0 and parameters[3] != 1) or (parameters[4] != 0 and parameters[4] != 1):
+						parameters = parameters[7:]
+						continue #The two flag parameters need to be 0 or 1, otherwise we won't be able to interpret them.
+					parameters[3] = parameters[3] != 0 #Convert to boolean.
+					parameters[4] = parameters[4] != 0
+					yield from self.extrude_arc(start_x=x, start_y=y,
+					                 rx=parameters[0], ry=parameters[1],
+					                 rotation=parameters[2],
+					                 large_arc=parameters[3], sweep_flag=parameters[4],
+					                 end_x=parameters[5], end_y=parameters[6], line_width=line_width, transformation=transformation)
+					x = parameters[5]
+					y = parameters[6]
+					parameters = parameters[7:]
+			elif command_name == "a": #Elliptical arc to relative position.
+				while len(parameters) >= 7:
+					if (parameters[3] != 0 and parameters[3] != 1) or (parameters[4] != 0 and parameters[4] != 1):
+						parameters = parameters[7:]
+						continue #The two flag parameters need to be 0 or 1, otherwise we won't be able to interpret them.
+					parameters[3] = parameters[3] != 0 #Convert to boolean.
+					parameters[4] = parameters[4] != 0
+					yield from self.extrude_arc(start_x=x, start_y=y,
+					                 rx=parameters[0], ry=parameters[1],
+					                 rotation=parameters[2],
+					                 large_arc=parameters[3], sweep_flag=parameters[4],
+					                 end_x=x + parameters[5], end_y=y + parameters[6], line_width=line_width, transformation=transformation)
+					x += parameters[5]
+					y += parameters[6]
+					parameters = parameters[7:]
+			elif command_name == "H": #Horizontal line.
 				while len(parameters) >= 1:
 					x = parameters[0]
 					tx, ty = self.apply_transformation(x, y, transformation)
@@ -551,7 +581,7 @@ class Parser:
 				tx, ty = self.apply_transformation(x, y, transformation)
 				yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
 			else: #Unrecognised command, or M or m which we processed separately.
-				# TODO: Implement A, a, C, c, S, s, Q, q, T, t, Z and z.
+				# TODO: Implement C, c, S, s, Q, q, T, t.
 				continue
 
 	def parse_polygon(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
