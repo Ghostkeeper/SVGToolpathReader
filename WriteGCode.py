@@ -7,8 +7,12 @@
 import cura.Settings.ExtruderManager #To get settings from the active extruder.
 import cura.LayerDataBuilder #One of the results of the function.
 import cura.LayerPolygon #Filling layer data.
+import json #To read this plugin's version for the g-code headers.
 import math
 import numpy #To create the Polygon data.
+import os.path #To read this plugin's version for the g-code headers.
+import UM.PluginRegistry #To read this plugin's version for the g-code headers.
+import time #To get today's date for the g-code headers.
 import typing
 
 from . import ExtrudeCommand #To differentiate between the command types.
@@ -29,6 +33,8 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 	material_diameter = extruder_stack.getProperty("material_diameter", "value")
 	machine_center_is_zero = extruder_stack.getProperty("machine_center_is_zero", "value") #Necessary to know if we need to offset the coordinates for layer view.
 	machine_gcode_flavor = extruder_stack.getProperty("machine_gcode_flavor", "value") #Necessary to track if we need to extrude volumetric or lengthwise.
+	machine_start_gcode = get_start_gcode()
+	machine_end_gcode = extruder_stack.getProperty("machine_end_gcode", "value")
 	machine_width = extruder_stack.getProperty("machine_width", "value")
 	machine_depth = extruder_stack.getProperty("machine_depth", "value")
 	is_volumetric = machine_gcode_flavor in {"UltiGCode", "RepRap (Volumetric)"}
@@ -36,7 +42,7 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 	speed_print = extruder_stack.getProperty("speed_wall_0", "value") * 60 #Convert to mm/min for g-code.
 
 	path = []
-	gcodes = []
+	gcodes = [machine_start_gcode]
 
 	x = 0
 	y = 0
@@ -96,6 +102,11 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 				path.append([x, -y, command.line_width])
 		gcodes.append(gcode)
 
+	gcodes.append("M140 S0") #Cool everything down.
+	gcodes.append("M104 S0")
+	gcodes.append("M107") #Fans off.
+	gcodes.append(machine_end_gcode)
+
 	builder = cura.LayerDataBuilder.LayerDataBuilder()
 	builder.addLayer(0)
 	layer = builder.getLayer(0)
@@ -127,3 +138,89 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 		layer.polygons.append(polygon)
 
 	return "\n".join(gcodes), builder
+
+def get_start_gcode() -> str:
+	"""
+	Returns the proper starting g-code for the current printer.
+
+	This doesn't just include the ordinary start g-code setting, but also any
+	headers specified by the g-code flavour, heating commands, priming maybe,
+	just anything that is required to get the printer going.
+	:return: The proper starting g-code for the current printer.
+	"""
+	extruder_number = cura.Settings.ExtruderManager.ExtruderManager.getInstance().activeExtruderIndex
+	extruder_stack = cura.Settings.ExtruderManager.ExtruderManager.getInstance().getActiveExtruderStack()
+	machine_gcode_flavor = extruder_stack.getProperty("machine_gcode_flavor", "value")
+	machine_name = extruder_stack.getProperty("machine_name", "value")
+	material_print_temperature_layer_0 = extruder_stack.getProperty("material_print_temperature_layer_0", "value")
+	material_guid = extruder_stack.getProperty("material_guid", "value")
+	machine_nozzle_size = extruder_stack.getProperty("machine_nozzle_size", "value")
+	machine_nozzle_id = extruder_stack.getProperty("machine_nozzle_id", "value")
+	machine_buildplate_type = extruder_stack.getProperty("machine_buildplate_type", "value")
+	material_bed_temperature_layer_0 = extruder_stack.getProperty("material_bed_temperature_layer_0", "value")
+	machine_width = extruder_stack.getProperty("machine_width", "value")
+	machine_depth = extruder_stack.getProperty("machine_depth", "value")
+	machine_height = extruder_stack.getProperty("machine_height", "value")
+	prime_blob_enable = extruder_stack.getProperty("prime_blob_enable", "value")
+	extruder_prime_pos_x = extruder_stack.getProperty("extruder_prime_pos_x", "value")
+	extruder_prime_pos_y = extruder_stack.getProperty("extruder_prime_pos_y", "value")
+	acceleration_wall_0 = extruder_stack.getProperty("acceleration_wall_0", "value")
+	jerk_wall_0 = extruder_stack.getProperty("jerk_wall_0", "value")
+
+	result = ""
+
+	if machine_gcode_flavor == "Griffin":
+		plugin_path = UM.PluginRegistry.PluginRegistry.getInstance().getPluginPath("SVGToolpathReader")
+		with open(os.path.join(plugin_path, "plugin.json")) as f:
+			plugin_json = json.load(f)
+		svgtoolpathreader_version = plugin_json["version"]
+		result += """;START_OF_HEADER
+;HEADER_VERSION:0.1
+;FLAVOR:Griffin
+;GENERATOR.NAME:SVGToolpathReader
+;GENERATOR.VERSION:{svgtoolpathreader_version}
+;GENERATOR.BUILD_DATE:{today}
+;TARGET_MACHINE.NAME:{printer_name}
+;EXTRUDER_TRAIN.{extruder_number}.INITIAL_TEMPERATURE:{print_temperature}
+;EXTRUDER_TRAIN.{extruder_number}.MATERIAL.VOLUME_USED:6666
+;EXTRUDER_TRAIN.{extruder_number}.MATERIAL.GUID:{guid}
+;EXTRUDER_TRAIN.{extruder_number}.NOZZLE.DIAMETER:{nozzle_diameter}
+;EXTRUDER_TRAIN.{extruder_number}.NOZZLE.NAME:{nozzle_name}
+;BUILD_PLATE.TYPE:{buildplate_type}
+;BUILD_PLATE.INITIAL_TEMPERATURE:{buildplate_temperature}
+;PRINT.TIME:666
+;PRINT.SIZE.MIN.X:0
+;PRINT.SIZE.MIN.Y:0
+;PRINT.SIZE.MIN.Z:0
+;PRINT.SIZE.MAX.X:{printer_width}
+;PRINT.SIZE.MAX.Y:{printer_depth}
+;PRINT.SIZE.MAX.Z:{printer_height}
+;END_OF_HEADER
+""".format(svgtoolpathreader_version=svgtoolpathreader_version,
+           today=time.strftime("%Y-%m-%d"),
+           printer_name=machine_name,
+           extruder_number=extruder_number,
+           print_temperature=material_print_temperature_layer_0,
+           guid=material_guid,
+           nozzle_diameter=machine_nozzle_size,
+           nozzle_name=machine_nozzle_id,
+           buildplate_type=machine_buildplate_type,
+           buildplate_temperature=material_bed_temperature_layer_0,
+           printer_width=machine_width,
+           printer_depth=machine_depth,
+           printer_height=machine_height)
+
+	result += "T" + str(extruder_number) + "\n" #Correct extruder.
+	result += "M82\n" #Absolute extrusion mode only.
+	result += "G92 E0\n" #Reset E, wherever it ended up in the previous print is now 0.
+	result += "M109 S{print_temperature}\n".format(print_temperature=material_print_temperature_layer_0) #Heat extruder.
+	result += "M190 S{bed_temperature}\n".format(bed_temperature=material_bed_temperature_layer_0) #Heat build plate.
+	if prime_blob_enable: #Prime, if necessary.
+		result += "G0 F15000 X{prime_x} Y{prime_y} Z2\n".format(prime_x=extruder_prime_pos_x, prime_y=extruder_prime_pos_y)
+		result += "G280\n"
+	result += "M107\n" #Fans on.
+	result += "M204 S{acceleration}\n".format(acceleration=acceleration_wall_0)
+	result += "M205 X{jerk} Y{jerk}\n".format(jerk=jerk_wall_0)
+	result += ";LAYER:0"
+
+	return result
