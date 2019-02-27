@@ -166,6 +166,7 @@ def get_start_gcode() -> str:
 	extruder_prime_pos_y = extruder_stack.getProperty("extruder_prime_pos_y", "value")
 	acceleration_wall_0 = extruder_stack.getProperty("acceleration_wall_0", "value")
 	jerk_wall_0 = extruder_stack.getProperty("jerk_wall_0", "value")
+	layer_height_0 = extruder_stack.getProperty("layer_height_0", "value")
 
 	result = ""
 
@@ -221,6 +222,7 @@ def get_start_gcode() -> str:
 	result += "M107\n" #Fans on.
 	result += "M204 S{acceleration}\n".format(acceleration=acceleration_wall_0)
 	result += "M205 X{jerk} Y{jerk}\n".format(jerk=jerk_wall_0)
-	result += ";LAYER:0"
+	result += ";LAYER:0\n"
+	result += "G0 F15000 Z{layer_height}".format(layer_height=layer_height_0)
 
 	return result
