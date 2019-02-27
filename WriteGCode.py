@@ -38,8 +38,8 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 	machine_width = extruder_stack.getProperty("machine_width", "value")
 	machine_depth = extruder_stack.getProperty("machine_depth", "value")
 	is_volumetric = machine_gcode_flavor in {"UltiGCode", "RepRap (Volumetric)"}
-	speed_travel = extruder_stack.getProperty("speed_travel", "value") * 60 #Convert to mm/min for g-code.
-	speed_print = extruder_stack.getProperty("speed_wall_0", "value") * 60 #Convert to mm/min for g-code.
+	speed_travel = extruder_stack.getProperty("speed_travel_layer_0", "value")
+	speed_print = extruder_stack.getProperty("speed_print_layer_0", "value")
 
 	path = []
 	gcodes = [machine_start_gcode]
