@@ -33,7 +33,6 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 	material_diameter = extruder_stack.getProperty("material_diameter", "value")
 	machine_center_is_zero = extruder_stack.getProperty("machine_center_is_zero", "value") #Necessary to know if we need to offset the coordinates for layer view.
 	machine_gcode_flavor = extruder_stack.getProperty("machine_gcode_flavor", "value") #Necessary to track if we need to extrude volumetric or lengthwise.
-	machine_start_gcode = get_start_gcode()
 	machine_end_gcode = extruder_stack.getProperty("machine_end_gcode", "value")
 	machine_width = extruder_stack.getProperty("machine_width", "value")
 	machine_depth = extruder_stack.getProperty("machine_depth", "value")
@@ -42,12 +41,16 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 	speed_print = extruder_stack.getProperty("speed_print_layer_0", "value")
 
 	path = []
-	gcodes = [machine_start_gcode]
+	gcodes = []
 
 	x = 0
 	y = 0
 	e = 0
 	f = 0
+	min_x = machine_width
+	min_y = machine_depth
+	max_x = -machine_width
+	max_y = -machine_depth
 
 	for command in commands:
 		gcode = ";Unknown command of type {typename}!".format(typename=command.__class__.__name__)
@@ -61,9 +64,13 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 			gcode = "G0"
 			if command.x != x:
 				x = command.x
+				min_x = min(min_x, x)
+				max_x = max(max_x, x)
 				gcode += " X{x}".format(x=x)
 			if command.y != y:
 				y = command.y
+				min_y = min(min_y, y)
+				max_y = max(max_y, y)
 				gcode += " Y{y}".format(y=y)
 			if speed_travel * 60 != f:
 				f = speed_travel * 60
@@ -86,9 +93,13 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 			gcode = "G1"
 			if command.x != x:
 				x = command.x
+				min_x = min(min_x, x)
+				max_x = max(max_x, x)
 				gcode += " X{x}".format(x=x)
 			if command.y != y:
 				y = command.y
+				min_y = min(min_y, y)
+				max_y = max(max_y, y)
 				gcode += " Y{y}".format(y=y)
 			if speed_print * 60 != f:
 				f = speed_print * 60
@@ -101,6 +112,9 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 			else:
 				path.append([x, -y, command.line_width])
 		gcodes.append(gcode)
+
+	machine_start_gcode = get_start_gcode(min_x, min_y, max_x, max_y)
+	gcodes = [machine_start_gcode] + gcodes
 
 	gcodes.append("M140 S0") #Cool everything down.
 	gcodes.append("M104 S0")
@@ -139,13 +153,17 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 
 	return "\n".join(gcodes), builder
 
-def get_start_gcode() -> str:
+def get_start_gcode(min_x, min_y, max_x, max_y) -> str:
 	"""
 	Returns the proper starting g-code for the current printer.
 
 	This doesn't just include the ordinary start g-code setting, but also any
 	headers specified by the g-code flavour, heating commands, priming maybe,
 	just anything that is required to get the printer going.
+	:param min_x: The minimum X coordinate that we're moving to.
+	:param min_y: The minimum Y coordinate that we're moving to.
+	:param max_x: The maximum X coordinate that we're moving to.
+	:param max_y: The maximum Y coordinate that we're moving to.
 	:return: The proper starting g-code for the current printer.
 	"""
 	extruder_number = cura.Settings.ExtruderManager.ExtruderManager.getInstance().activeExtruderIndex
@@ -190,12 +208,12 @@ def get_start_gcode() -> str:
 ;BUILD_PLATE.TYPE:{buildplate_type}
 ;BUILD_PLATE.INITIAL_TEMPERATURE:{buildplate_temperature}
 ;PRINT.TIME:666
-;PRINT.SIZE.MIN.X:0
-;PRINT.SIZE.MIN.Y:0
-;PRINT.SIZE.MIN.Z:0
-;PRINT.SIZE.MAX.X:{printer_width}
-;PRINT.SIZE.MAX.Y:{printer_depth}
-;PRINT.SIZE.MAX.Z:{printer_height}
+;PRINT.SIZE.MIN.X:{min_x}
+;PRINT.SIZE.MIN.Y:{min_y}
+;PRINT.SIZE.MIN.Z:{layer_height}
+;PRINT.SIZE.MAX.X:{max_x}
+;PRINT.SIZE.MAX.Y:{max_y}
+;PRINT.SIZE.MAX.Z:{layer_height}
 ;END_OF_HEADER
 """.format(svgtoolpathreader_version=svgtoolpathreader_version,
            today=time.strftime("%Y-%m-%d"),
@@ -209,7 +227,12 @@ def get_start_gcode() -> str:
            buildplate_temperature=material_bed_temperature_layer_0,
            printer_width=machine_width,
            printer_depth=machine_depth,
-           printer_height=machine_height)
+           printer_height=machine_height,
+           min_x=min_x,
+           min_y=min_y,
+           max_x=max_x,
+           max_y=max_y,
+           layer_height=layer_height_0)
 
 	result += "T" + str(extruder_number) + "\n" #Correct extruder.
 	result += "M82\n" #Absolute extrusion mode only.
