@@ -48,4 +48,4 @@ The following attributes are supported for each of these:
 
 Line Widths
 -----------
-To draw the lines, the stroke width of the actual element in SVG is used. If this line width is 0, the outer wall line width will be used. The stroke of a line width can be specified using the `stroke-width` attribute in most elements, or using the `style` attribute. However support for CSS is very limited. Only inline `style` attributes are currently supported, no classes and no style elements.
+To draw the lines, the stroke width of the actual element in SVG is used. If this line width is 0, the outer wall line width will be used. The stroke of a line width can be specified using the `stroke-width` attribute in most elements, or using the `style` attribute or `style` element. However support for CSS is very limited. Classes are not supported and may even get interpreted wrongly.
