@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+	<style>
+		stroke-width: 2;
+	</style>
 	<path d="M12,15 L20,15 M8,40 L20,40 l0, 2 H50 V50 h10 v10 A50,60 0 0 0 15,55 Q30,70 40,55 T100,55 C90,55 110,75 100,75 S110,85 100,85 Z" />
 </svg>
