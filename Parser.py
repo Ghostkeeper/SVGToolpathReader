@@ -268,6 +268,8 @@ class Parser:
 			new_angle = lower_angle
 			while abs(current_error) > 0.001: #Continue until 1 micron error.
 				new_angle = (lower_angle + upper_angle) / 2
+				if new_angle == lower_angle or new_angle == upper_angle: #Get out of infinite loop if we're ever stuck.
+					break
 				new_x = math.cos(new_angle) * rx
 				new_x_temp = new_x
 				new_y = math.sin(new_angle) * ry
@@ -336,6 +338,8 @@ class Parser:
 				#we would think that the p is not high enough even though it is actually too high and thus skip the loop.
 				#With cubic curves, that looping point can never occur at 1/4 of the curve or earlier, so try 1/4 of the parameter.
 				new_p = (p_min * 3 + p_max) / 4
+				if new_p == p_min or new_p == p_max: #Get out of infinite loop if we're ever stuck.
+					break
 				#Calculate the three points on the linear segments.
 				linear1_x = start_x + new_p * (handle1_x - start_x)
 				linear1_y = start_y + new_p * (handle1_y - start_y)
@@ -415,6 +419,8 @@ class Parser:
 			new_p = p_min
 			while abs(new_error) > 0.001: #Continue until 1 micron error.
 				new_p = (p_min + p_max) / 2
+				if new_p == p_min or new_p == p_max: #Get out of infinite loop if we're ever stuck.
+					break
 				#Calculate the two points on the linear segments.
 				linear1_x = start_x + new_p * (handle_x - start_x)
 				linear1_y = start_y + new_p * (handle_y - start_y)
