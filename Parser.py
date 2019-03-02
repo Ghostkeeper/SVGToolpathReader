@@ -517,6 +517,8 @@ class Parser:
 			yield from self.parse_rect(element)
 		elif tag == "svg":
 			yield from self.parse_svg(element)
+		elif tag == "switch":
+			yield from self.parse_switch(element)
 		else:
 			UM.Logger.Logger.log("w", "Unknown element {element_tag}.".format(element_tag=tag))
 			#SVG specifies that you should ignore any unknown elements.
@@ -923,10 +925,42 @@ class Parser:
 
 	def parse_svg(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 		"""
-		Parses the SVG element, which basically concatenates all commands put forth
-		by its children.
+		Parses the SVG element, which basically concatenates all commands put
+		forth by its children.
 		:param element: The SVG element.
 		:return: A sequence of commands necessary to print this element.
 		"""
 		for child in element:
 			yield from self.parse(child)
+
+	def parse_switch(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
+		"""
+		Parses the Switch element, which can decide to show or not show its
+		child elements based on if features are implemented or not.
+		:param element: The Switch element.
+		:return: A sequence of commands necessary to print this element.
+		"""
+		#For some of these features we're actually lying, since we support most of what the feature entails so for 99% of the files that use them it should be fine.
+		supported_features = {
+			"", #If there is no required feature, this will appear in the set.
+			"http://www.w3.org/TR/SVG11/feature#SVG", #Since v1.0.0.
+			"http://www.w3.org/TR/SVG11/feature#SVGDOM", #Since v1.0.0.
+			"http://www.w3.org/TR/SVG11/feature#SVG-static", #Since v1.0.0.
+			"http://www.w3.org/TR/SVG11/feature#SVGDOM-static", #Since v1.0.0.
+			"http://www.w3.org/TR/SVG11/feature#Structure", #Actually unsupported: <symbol> and <use>.
+			"http://www.w3.org/TR/SVG11/feature#BasicStructure", #Actually unsupported: <use>.
+			"http://www.w3.org/TR/SVG11/feature#ConditionalProcessing", #Actually unsupported: requiredExtensions and systemLanguage.
+			"http://www.w3.org/TR/SVG11/feature#Shape" #Since v1.0.0.
+			"http://www.w3.org/TR/SVG11/feature#PaintAttribute" #Actually unsupported: stroke-dasharray and stroke-dashoffset.
+			"http://www.w3.org/TR/SVG11/feature#BasicPaintAttribute" #Actually unsupported: stroke-dasharray and stroke-dashoffset.
+			"http://www.w3.org/TR/SVG11/feature#ColorProfile" #Doesn't apply to g-code.
+			"http://www.w3.org/TR/SVG11/feature#Gradient" #Doesn't apply to g-code.
+		}
+		required_features = element.attrib.get("requiredFeatures", "")
+		required_features = {feature.strip() for feature in required_features.split(",")}
+
+		if required_features - supported_features:
+			return #Not all required features are supported.
+		else:
+			for child in element:
+				yield from self.parse(child)
