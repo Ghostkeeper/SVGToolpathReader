@@ -38,6 +38,33 @@ class Parser:
 		new_position = numpy.matmul(transformation, position)
 		return new_position[0], new_position[1]
 
+	def convert_css(self, css) -> typing.Tuple[typing.Optional[str], typing.Optional[str]]:
+		"""
+		Obtains the CSS properties that we can use from a piece of CSS.
+		:param css: The piece of CSS to parse.
+		:return: The values that we can do something with from CSS:
+		* The value for the stroke-width property.
+		* The value for the transform property.
+		"""
+		stroke_width = None
+		transform = None
+
+		pieces = css.split(";")
+		for piece in pieces:
+			piece = piece.strip()
+			if piece.startswith("stroke-width:"):
+				piece = piece[len("stroke-width:"):]
+				piece = piece.strip()
+				try:
+					stroke_width = str(float(piece))
+				except ValueError: #Not parsable as float.
+					pass #Leave it at the default or the attribute.
+			elif piece.startswith("transform:"):
+				piece = piece[len("transform:"):]
+				transform = piece.strip()
+
+		return stroke_width, transform
+
 	def convert_float(self, dictionary, attribute, default: float) -> float:
 		"""
 		Parses an attribute as float, if possible.
@@ -463,22 +490,22 @@ class Parser:
 			except ValueError: #Not parsable as float.
 				pass
 
+		for child in element:
+			if child.tag[len(self._namespace):].lower() == "style":
+				css_stroke_width, css_transform = self.convert_css(child.text)
+				if css_stroke_width is not None:
+					stroke_width = css_stroke_width
+				if css_transform is not None:
+					transform = css_transform
+
 		if "style" in element.attrib: #CSS overrides attribute.
-			css = element.attrib["style"]
-			pieces = css.split(";")
-			for piece in pieces:
-				piece = piece.strip()
-				if piece.startswith("stroke-width:"):
-					piece = piece[len("stroke-width:"):]
-					piece = piece.strip()
-					try:
-						stroke_width = str(float(piece))
-					except ValueError: #Not parsable as float.
-						pass #Leave it at the default or the attribute.
-				elif piece.startswith("transform:"):
-					piece = piece[len("transform:"):]
-					transform = piece.strip()
+			css_stroke_width, css_transform = self.convert_css(element.attrib["style"])
+			if css_stroke_width is not None:
+				stroke_width = css_stroke_width
+			if css_transform is not None:
+				transform = css_transform
 			del element.attrib["style"]
+
 		if stroke_width is not None:
 			element.attrib["stroke-width"] = stroke_width
 		if transform is not None:
