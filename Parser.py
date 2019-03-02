@@ -617,8 +617,7 @@ class Parser:
 		d = d.replace(",", " ")
 		d = d.strip()
 
-		is_first = True #Track first movement command for Z command to return to beginning.
-		start_x = 0
+		start_x = 0 #Track movement command for Z command to return to beginning.
 		start_y = 0
 		previous_quadratic_x = 0 #Track the previous curve handle of Q commands for the T command.
 		previous_quadratic_y = 0 #This is always absolute!
@@ -633,11 +632,6 @@ class Parser:
 			command = command[1:]
 			parameters = [float(match) for match in re.findall(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", command)] #Ignore parameters that are not properly formatted floats.
 
-			if is_first and command_name != "M" and command_name != "m":
-				start_x = x
-				start_y = y
-				is_first = False
-
 			#Process M and m commands first since they can have some of their parameters apply to different commands.
 			if command_name == "M": #Move.
 				if len(parameters) < 2:
@@ -649,6 +643,8 @@ class Parser:
 				if len(parameters) >= 2:
 					command_name = "L" #The next parameters are interpreted as being lines.
 					parameters = parameters[2:]
+				start_x = x #Start a new path.
+				start_y = y
 			if command_name == "m": #Move relatively.
 				if len(parameters) < 2:
 					continue #Not enough parameters to the m command. Skip it.
@@ -659,6 +655,8 @@ class Parser:
 				if len(parameters) >= 2:
 					command_name = "l" #The next parameters are interpreted as being relative lines.
 					parameters = parameters[2:]
+				start_x = x #Start a new path.
+				start_y = y
 
 			if command_name == "A": #Elliptical arc.
 				while len(parameters) >= 7:
