@@ -323,7 +323,7 @@ class Parser:
 		end_tx, end_ty = self.apply_transformation(end_x, end_y, transformation)
 		p_min = 0
 		p_max = 1
-		while (current_x - end_tx) * (current_tx - end_tx) + (current_ty - end_ty) * (current_ty - end_ty) > self.resolution * self.resolution: #Keep stepping until we're closer than one step from our goal.
+		while (current_tx - end_tx) * (current_tx - end_tx) + (current_ty - end_ty) * (current_ty - end_ty) > self.resolution * self.resolution: #Keep stepping until we're closer than one step from our goal.
 			#Find the value for p that gets us exactly one step away (after transformation).
 			new_x = current_x
 			new_y = current_y
