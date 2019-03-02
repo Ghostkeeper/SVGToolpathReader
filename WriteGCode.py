@@ -68,6 +68,7 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 			gcode = ""
 			if not is_retracted:
 				gcode += "G0 F{speed} E{e}\n".format(speed=retraction_speed * 60, e=e - retraction_distance)
+				is_retracted = True
 			gcode += "G0"
 			if command.x != x:
 				x = command.x
@@ -100,6 +101,7 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 			gcode = ""
 			if is_retracted:
 				gcode += "G0 F{speed} E{e}\n".format(speed=unretraction_speed, e=e)
+				is_retracted = False
 			gcode += "G1"
 			if command.x != x:
 				x = command.x
