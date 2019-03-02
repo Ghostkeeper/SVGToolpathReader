@@ -39,6 +39,8 @@ Not all elements of the SVG specification will be printed. For some things, this
 * polyline
 * line
 * path
+* style
+* switch
 
 The following attributes are supported for each of these:
 * stroke-width
