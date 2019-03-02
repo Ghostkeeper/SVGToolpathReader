@@ -6,15 +6,26 @@ Settings
 --------
 This plug-in will use the current settings in your currently activated extruder as the settings to print with. The following settings will influence your print:
 
-| Setting                | Effect                                                                     |
-| -----------------------|----------------------------------------------------------------------------|
-| Initial Layer Height   | This will be used as the height of your layer.                             |
-| Flow                   | Adjusts the amount of material extruded linearly.                          |
-| Diameter               | Compute the correct length of filament to extrude.                         |
-| Travel Speed           | The speed at which travel moves are made.                                  |
-| Outer Wall Print Speed | The speed at which all lines are printed.                                  |
-| Outer Wall Line Width  | The line width used for shapes that don't specify a line width themselves. |
-| Maximum Resolution     | Length of segments in all curves.                                          |
+| Setting                               | Effect                                                                     |
+| --------------------------------------|----------------------------------------------------------------------------|
+| Initial Layer Height                  | This will be used as the height of your layer.                             |
+| Flow                                  | Adjusts the amount of material extruded linearly.                          |
+| Diameter                              | Compute the correct length of filament to extrude.                         |
+| Initial Layer Travel Speed            | The speed at which travel moves are made.                                  |
+| Initial Layer Print Speed             | The speed at which all lines are printed.                                  |
+| Enable Retraction                     | Whether all travel moves should be made with filament retracted.           |
+| Retraction Distance                   | How far to retract.                                                        |
+| Retraction Retract Speed              | The speed at which to retract the filament.                                |
+| Retraction Prime Speed                | The speed at which to unretract the filament.                              |
+| Outer Wall Line Width                 | The line width used for shapes that don't specify a line width themselves. |
+| Outer Wall Acceleration               | The acceleration to use throughout the print (also for travel moves).      |
+| Outer Wall Jerk                       | The jerk to use throughout the print (also for travel moves).              |
+| Maximum Resolution                    | Length of segments in all curves.                                          |
+| Printing Temperature Initial Layer    | The temperature at which to print.                                         |
+| Build Plate Temperature Initial Layer | The build plate temperature during the print.                              |
+| Enable Prime Blob                     | Whether or not to prime before the print.                                  |
+| Extruder Prime X Position             | The X coordinate of where to prime.                                        |
+| Extruder Prime Y Position             | The Y coordinate of where to prime.                                        |
 
 SVG Support
 -----------
