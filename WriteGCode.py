@@ -39,6 +39,7 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 	is_volumetric = machine_gcode_flavor in {"UltiGCode", "RepRap (Volumetric)"}
 	speed_travel = extruder_stack.getProperty("speed_travel_layer_0", "value")
 	speed_print = extruder_stack.getProperty("speed_print_layer_0", "value")
+	retraction_enable = extruder_stack.getProperty("retraction_enable", "value")
 	retraction_speed = extruder_stack.getProperty("retraction_retract_speed", "value")
 	unretraction_speed = extruder_stack.getProperty("retraction_unretract_speed", "value")
 	retraction_distance = extruder_stack.getProperty("retraction_amount", "value")
@@ -54,7 +55,7 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 	min_y = machine_depth
 	max_x = -machine_width
 	max_y = -machine_depth
-	is_retracted = True #We start off retracted as per the start g-code.
+	is_retracted = retraction_enable #If retracting, we start off retracted as per the start g-code.
 
 	for command in commands:
 		gcode = ";Unknown command of type {typename}!".format(typename=command.__class__.__name__)
@@ -66,7 +67,7 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 				command.y = -command.y
 
 			gcode = ""
-			if not is_retracted:
+			if not is_retracted and retraction_enable:
 				gcode += "G0 F{speed} E{e}\n".format(speed=retraction_speed * 60, e=e - retraction_distance)
 				is_retracted = True
 			gcode += "G0"
@@ -150,7 +151,10 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 			if i > 0:
 				if point[2] == 0:
 					feedrates[i - 1] = speed_travel
-					types[i - 1] = cura.LayerPolygon.LayerPolygon.MoveRetractionType
+					if retraction_enable:
+						types[i - 1] = cura.LayerPolygon.LayerPolygon.MoveRetractionType
+					else:
+						types[i - 1] = cura.LayerPolygon.LayerPolygon.MoveCombingType
 					widths[i - 1] = 0.1
 					thicknesses[i - 1] = 0.0
 				else:
@@ -197,6 +201,7 @@ def get_start_gcode(min_x, min_y, max_x, max_y) -> str:
 	acceleration_wall_0 = extruder_stack.getProperty("acceleration_wall_0", "value")
 	jerk_wall_0 = extruder_stack.getProperty("jerk_wall_0", "value")
 	layer_height_0 = extruder_stack.getProperty("layer_height_0", "value")
+	retraction_enable = extruder_stack.getProperty("retraction_enable", "value")
 	retraction_speed = extruder_stack.getProperty("retraction_speed", "value")
 	retraction_distance = extruder_stack.getProperty("retraction_amount", "value")
 
@@ -256,7 +261,8 @@ def get_start_gcode(min_x, min_y, max_x, max_y) -> str:
 	if prime_blob_enable: #Prime, if necessary.
 		result += "G0 F15000 X{prime_x} Y{prime_y} Z2\n".format(prime_x=extruder_prime_pos_x, prime_y=extruder_prime_pos_y)
 		result += "G280\n"
-	result += "G0 F{speed} E-{distance}".format(speed=retraction_speed * 60, distance=retraction_distance)
+	if retraction_enable:
+		result += "G0 F{speed} E-{distance}".format(speed=retraction_speed * 60, distance=retraction_distance)
 	result += "M107\n" #Fans on.
 	result += "M204 S{acceleration}\n".format(acceleration=acceleration_wall_0)
 	result += "M205 X{jerk} Y{jerk}\n".format(jerk=jerk_wall_0)
