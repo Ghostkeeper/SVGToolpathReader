@@ -1,13 +1,28 @@
-SVGToolpathReader
+SVG Toolpath Reader
 -----------------
 This is a plug-in for Cura that allows you to read an SVG file directly as g-code. The outlines of the shapes in your SVG image will get printed as outer walls.
+
+Installation
+------------
+You can install this plug-in in one of three ways.
+1. **Marketplace:** In Cura, go to the Marketplace and find SVG Toopath Reader in the list. Click it, then click on "install" and restart Cura.
+2. **From package:** Go to the [releases](https://github.com/Ghostkeeper/SVGToolpathReader/releases) page to download the latest release. Select the SDK version that fits your version of Cura:
+
+   | Cura version | SDK |
+   |--------------|-----|
+   | 3.5          | 5   |
+   | 3.6          | 5   |
+   | 4.0          | 6   |
+   
+   Drag that package file onto the Cura window, then restart Cura.
+3. **From source:** Download the latest source code [from Github](https://github.com/Ghostkeeper/SVGToolpathReader/archive/master.zip). In Cura, click on "Help", "Show configuration folder". Navigate to the "plugins" subfolder and unpack the .zip file from Github there. Rename the folder to "SVGToolpathReader" (removing any suffix that Github added such as "-master"). Restart Cura.
 
 Settings
 --------
 This plug-in will use the current settings in your currently activated extruder as the settings to print with. The following settings will influence your print:
 
 | Setting                               | Effect                                                                     |
-| --------------------------------------|----------------------------------------------------------------------------|
+|---------------------------------------|----------------------------------------------------------------------------|
 | Initial Layer Height                  | This will be used as the height of your layer.                             |
 | Flow                                  | Adjusts the amount of material extruded linearly.                          |
 | Diameter                              | Compute the correct length of filament to extrude.                         |
