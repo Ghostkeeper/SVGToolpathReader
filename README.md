@@ -17,6 +17,16 @@ You can install this plug-in in one of three ways.
    Drag that package file onto the Cura window, then restart Cura.
 3. **From source:** Download the latest source code [from Github](https://github.com/Ghostkeeper/SVGToolpathReader/archive/master.zip). In Cura, click on "Help", "Show configuration folder". Navigate to the "plugins" subfolder and unpack the .zip file from Github there. Rename the folder to "SVGToolpathReader" (removing any suffix that Github added such as "-master"). Restart Cura.
 
+Usage
+-----
+To use this plug-in, simply load an SVG file. There are a couple of things you might want to watch out for though.
+* Not all elements are supported. See the SVG Support header below for a list of what is supported.
+* Curves will get sampled in segments of the Maximum Resolution. That may be too high of a sample rate for your printer to cope with.
+* Unless your printer has the origin in the centre, the coordinate origin is in the back left corner of the printer. It is not the front left corner, like with g-code. This makes the image render in proper orientation. Coordinates are in millimetres.
+* If you see nothing in the layer view, your image coordinates may be out of whack, causing the lines to be positioned out of view.
+* There is no check for whether your print stays within the build volume. This might generate g-code that instructs the printer to go out of its build volume.
+* The actual stroke width of the shape is used as the line width to print with. Common stroke widths in SVG are often too wide to print.
+
 Settings
 --------
 This plug-in will use the current settings in your currently activated extruder as the settings to print with. The following settings will influence your print:
