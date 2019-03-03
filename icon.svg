@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+	<defs>
+		<radialGradient id="brush_colour" cx="50%" cy="50%" r="50%" fx="0%" fy="50%" fr="0%">
+			<stop offset="0%" stop-color="lightgrey" />
+			<stop offset="50%" stop-color="black" />
+		</radialGradient>
+		<linearGradient id="hairs_colour" gradientTransform="rotate(70)">
+			<stop offset="70%" stop-color="black" />
+			<stop offset="100%" stop-color="grey" />
+		</linearGradient>
+	</defs>
+
+	<!-- Background logo -->
+	<path d="M200,0 h-150 l-50,50 v150 h150 l50,-50 z" fill="#0CA9E3" />
+
+	<g transform="scale(0.8) translate(20,20)">
+		<!-- Drawn path -->
+		<path d="M150,30 c-170,0 -180,100 -37,160 h10 l10,-5 c-143,-60 -133,-150 37,-150 z" fill="white" />
+		<line x1="160" y1="32.5" x2="10" y2="32.5" stroke="black" stroke-width="2" stroke-linecap="round" /> <!-- Top handle -->
+		<circle cx="10" cy="32.5" r="3" fill="#0CA9E3" stroke="black" stroke-width="2" />
+		<line x1="126" y1="189" x2="20" y2="140" stroke="black" stroke-width="2" /> <!-- Bottom handle -->
+		<circle cx="20" cy="140" r="3" fill="#0CA9E3" stroke="black" stroke-width="2" />
+
+		<!-- Brush -->
+		<path d="M153,160 q0,30 -30,30 h-10 c20,-10 20,-25 37,-30" fill="url(#hairs_colour)" /> <!-- Hairs -->
+		<ellipse cx="210" cy="102" rx="5" ry="60" transform="skewX(-20)" fill="url(#brush_colour)" /> <!-- Handle -->
+		<rect rx="1" ry="1" x="194.4" y="90" width="5" height="10" transform="rotate(20)" fill="gray" stroke="black" /> <!-- Clip -->
+	</g>
+</svg>
