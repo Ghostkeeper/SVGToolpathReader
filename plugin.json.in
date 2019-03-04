@@ -1,7 +1,7 @@
 {
-	"name": "SVG Toolpath Reader",
+	"name": "${SVGTOOLPATHREADER_PLUGIN_NAME}",
 	"author": "Ghostkeeper",
-	"version": "1.0.0",
+	"version": "${SVGTOOLPATHREADER_VERSION_MAJOR}.${SVGTOOLPATHREADER_VERSION_MINOR}.${SVGTOOLPATHREADER_VERSION_PATCH}",
 	"description": "Reads SVG files as toolpaths, for debugging printer movements.",
 	"api": 5,
 	"supported_sdk_versions": ["5.0.0", "6.0.0"]
