@@ -41,6 +41,8 @@ class SVGToolpathReader(UM.Mesh.MeshReader.MeshReader):
 		#Parse the document and generate its g-code.
 		document = xml.etree.ElementTree.parse(file_name)
 		parser = Parser.Parser()
+		definitions = parser.find_definitions(document.getroot())
+		parser.dereference_uses(document.getroot(), definitions)
 		parser.defaults(document.getroot())
 		parser.inheritance(document.getroot())
 		commands = parser.parse(document.getroot())

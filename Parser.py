@@ -4,12 +4,14 @@
 #This plug-in is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for details.
 #You should have received a copy of the GNU Affero General Public License along with this plug-in. If not, see <https://gnu.org/licenses/>.
 
+import copy #Copy nodes for <use> elements.
 import cura.Settings.ExtruderManager #To get settings from the active extruder.
 import math #Computing curves and such.
 import numpy #Transformation matrices.
 import re #Parsing D attributes of paths.
 import typing
 import UM.Logger #To log parse errors and warnings.
+import xml.etree.ElementTree #Just typing.
 
 from . import ExtrudeCommand
 from . import TravelCommand
@@ -20,6 +22,7 @@ class Parser:
 	"""
 
 	_namespace = "{http://www.w3.org/2000/svg}" #Namespace prefix for all SVG elements.
+	_xlink_namespace = "{http://www.w3.org/1999/xlink}" #Namespace prefix for XLink references within the document.
 
 	def __init__(self):
 		extruder_stack = cura.Settings.ExtruderManager.ExtruderManager.getInstance().getActiveExtruderStack()
@@ -210,6 +213,48 @@ class Parser:
 			element.attrib["stroke-width"] = extruder_stack.getProperty("wall_line_width_0", "value")
 		if "transform" not in element.attrib:
 			element.attrib["transform"] = ""
+
+	def dereference_uses(self, element, definitions) -> None:
+		"""
+		Finds all <use> elements and dereferences them.
+
+		This needs to happen recursively (not just with one XPath query) because
+		the definitions themselves may again use other definitions.
+
+		If the uses are recursing infinitely, this currently freezes the loading
+		thread. TODO: Track the current stack to check for circular references.
+		:param element: The scope within a document within which to find uses of
+		definitions to replace them.
+		:param definitions: The definitions to search through, indexed by their
+		IDs.
+		"""
+		for use in element.findall(self._namespace + "use"):
+			link = use.attrib.get(self._xlink_namespace + "href")
+			link = use.attrib.get("href", link)
+			if link is None:
+				UM.Logger.Logger.log("w", "Encountered <use> element without href!")
+				continue
+			if not link.startswith("#"):
+				UM.Logger.Logger.log("w", "SVG document links to {link}, which is outside of this document.".format(link=link))
+				#TODO: To support this, we need to:
+				#TODO:  - Reference the URL relative to this document.
+				#TODO:  - Download the URL if it is not local.
+				#TODO:  - Open and parse the document's XML to fetch different definitions.
+				#TODO:  - Fetch the correct subelement from the resulting document, for the fragment of the URL.
+				continue
+			link = link[1:]
+			if link not in definitions:
+				UM.Logger.Logger.log("w", "Reference to unknown element with ID: {link}".format(link=link))
+				continue
+			element_copy = copy.deepcopy(definitions[link])
+			transform = use.attrib.get("transform", "")
+			if transform:
+				element_transform = element_copy.attrib.get("transform", "")
+				element_copy.attrib["transform"] = element_transform + " " + transform
+			element.append(element_copy)
+
+		for child in element.getchildren(): #Recurse (after dereferencing uses).
+			self.dereference_uses(child, definitions)
 
 	def extrude_arc(self, start_x, start_y, rx, ry, rotation, large_arc, sweep_flag, end_x, end_y, line_width, transformation) -> typing.Generator[ExtrudeCommand.ExtrudeCommand, None, None]:
 		"""
@@ -469,6 +514,17 @@ class Parser:
 			p_min = new_p
 			p_max = 1
 		yield ExtrudeCommand.ExtrudeCommand(end_tx, end_ty, line_width) #And the last step to end exactly on our goal.
+
+	def find_definitions(self, element) -> typing.Dict[str, xml.etree.ElementTree.Element]:
+		"""
+		Finds all element definitions in an element tree.
+		:param element: An element whose descendants we must register.
+		:return: A dictionary mapping element IDs to their elements.
+		"""
+		definitions = {}
+		for definition in element.findall(".//*[@id]"):
+			definitions[definition.attrib["id"]] = definition
+		return definitions
 
 	def inheritance(self, element) -> None:
 		"""
