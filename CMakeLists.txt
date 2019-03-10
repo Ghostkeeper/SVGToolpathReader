@@ -12,6 +12,7 @@ set(SVGTOOLPATHREADER_PLUGIN_NAME "SVG Toolpath Reader" CACHE STRING "The name o
 set(SVGTOOLPATHREADER_VERSION_MAJOR 1 CACHE STRING "The major version number, indicating a backward compatibility break.")
 set(SVGTOOLPATHREADER_VERSION_MINOR 0 CACHE STRING "The minor version number, indicating a forward compatibility break.")
 set(SVGTOOLPATHREADER_VERSION_PATCH 0 CACHE STRING "The patch version number, indicating an incremental improvement without compatibility break.")
+set(SVGTOOLPATHREADER_SUPPORTED_SDKS "5.0.0;6.0.0" CACHE STRING "List of supported Cura SDK versions.")
 
 #Installation.
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/plugin.json.in" plugin.json)
@@ -55,20 +56,24 @@ endif()
 install(FILES ${installed_paths} DESTINATION SVGToolpathReader)
 
 #Packing this into a .curapackage file.
-file(COPY ${installed_paths} DESTINATION pack/files/plugins/SVGToolpathReader)
-file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/cmake/package.json" DESTINATION pack)
-file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/cmake/[Content_Types].xml" DESTINATION pack)
-file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/cmake/_rels" DESTINATION pack)
-set(packaged_files
-	"${CMAKE_CURRENT_BINARY_DIR}/pack/package.json"
-	"${CMAKE_CURRENT_BINARY_DIR}/pack/[Content_Types].xml"
-	"${CMAKE_CURRENT_BINARY_DIR}/pack/_rels"
-	"${CMAKE_CURRENT_BINARY_DIR}/pack/files"
-)
-add_custom_target(pack
-	COMMAND ${CMAKE_COMMAND} -E tar "cfv" "${CMAKE_CURRENT_BINARY_DIR}/SVGToolpathReader.curapackage" --format=zip ${packaged_files}
-	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/pack
-)
+add_custom_target(pack COMMAND "") #Packs for all supported SDK versions.
+foreach(sdk_version ${SVGTOOLPATHREADER_SUPPORTED_SDKS})
+	file(COPY ${installed_paths} DESTINATION pack${sdk_version}/files/plugins/SVGToolpathReader)
+	file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/cmake/[Content_Types].xml" DESTINATION pack${sdk_version})
+	file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/cmake/_rels" DESTINATION pack${sdk_version})
+	configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/package.json.in" pack${sdk_version}/package.json)
+	set(packaged_files
+		package.json
+		[Content_Types].xml
+		_rels
+		files
+	)
+	add_custom_target(pack${sdk_version}
+		COMMAND "${CMAKE_COMMAND}" -E tar cfv ../SVGToolpathReader${sdk_version}.curapackage --format=zip ${packaged_files}
+		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/pack${sdk_version}
+	)
+	add_dependencies(pack pack${sdk_version})
+endforeach()
 
 #Let CPack find it.
 include(InstallRequiredSystemLibraries)
