@@ -4,7 +4,7 @@ This is a plug-in for Cura that allows you to read an SVG file directly as g-cod
 
 Installation
 ------------
-You can install this plug-in in one of three ways.
+You can install this plug-in in one of four ways.
 1. **Marketplace:** In Cura, go to the Marketplace and find SVG Toopath Reader in the list. Click it, then click on "install" and restart Cura.
 2. **From package:** Go to the [releases](https://github.com/Ghostkeeper/SVGToolpathReader/releases) page to download the latest release. Select the SDK version that fits your version of Cura:
 
@@ -15,7 +15,8 @@ You can install this plug-in in one of three ways.
    | 4.0          | 6   |
    
    Drag that package file onto the Cura window, then restart Cura.
-3. **From source:** Download the latest source code [from Github](https://github.com/Ghostkeeper/SVGToolpathReader/archive/master.zip). In Cura, click on "Help", "Show configuration folder". Navigate to the "plugins" subfolder and unpack the .zip file from Github there. Rename the folder to "SVGToolpathReader" (removing any suffix that Github added such as "-master"). Restart Cura.
+3. **Building packages:** Download the latest source code [from Github](https://github.com/Ghostkeeper/SVGToolpathReader/archive/master.zip), then in a terminal run `cmake . && make pack` to create a .curapackage file for each supported SDK version. Similar to the previous option, select the SDK version that fits your version of Cura and drag it onto the Cura window, then restart Cura.
+4. **From source:** Download the latest source code [from Github](https://github.com/Ghostkeeper/SVGToolpathReader/archive/master.zip). In Cura, click on "Help", "Show configuration folder". Navigate to the "plugins" subfolder and unpack the .zip file from Github there. Rename the folder to "SVGToolpathReader" (removing any suffix that Github added such as "-master"). Restart Cura.
 
 Usage
 -----
