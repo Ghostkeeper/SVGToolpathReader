@@ -228,7 +228,7 @@ class Parser:
 		:param definitions: The definitions to search through, indexed by their
 		IDs.
 		"""
-		for use in element.findall(self._namespace + "use"):
+		for use in element.findall(self._namespace + "use"): #TODO: This is case-sensitive. The SVG specification says that is correct, but the rest of this implementation is not sensitive.
 			link = use.attrib.get(self._xlink_namespace + "href")
 			link = use.attrib.get("href", link)
 			if link is None:
@@ -591,6 +591,8 @@ class Parser:
 		tag = element.tag[len(self._namespace):].lower()
 		if tag == "circle":
 			yield from self.parse_circle(element)
+		elif tag == "defs":
+			return #Ignore defs.
 		elif tag == "ellipse":
 			yield from self.parse_ellipse(element)
 		elif tag == "g":
