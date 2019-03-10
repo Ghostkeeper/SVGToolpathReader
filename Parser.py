@@ -252,8 +252,9 @@ class Parser:
 				element_transform = element_copy.attrib.get("transform", "")
 				element_copy.attrib["transform"] = element_transform + " " + transform
 			element.append(element_copy)
+			element.remove(use)
 
-		for child in element.getchildren(): #Recurse (after dereferencing uses).
+		for child in element: #Recurse (after dereferencing uses).
 			self.dereference_uses(child, definitions)
 
 	def extrude_arc(self, start_x, start_y, rx, ry, rotation, large_arc, sweep_flag, end_x, end_y, line_width, transformation) -> typing.Generator[ExtrudeCommand.ExtrudeCommand, None, None]:
