@@ -60,13 +60,14 @@ Not all elements of the SVG specification will be printed. For some things, this
 * rect (x, y, width, height, rx, ry)
 * circle (cx, cy, r)
 * g
-* ellipse
-* polygon
-* polyline
-* line
-* path
-* style
-* switch
+* ellipse (cx, cy, rx, ry)
+* polygon (points)
+* polyline (points)
+* line (x1, y1, x2, y2)
+* path (d)
+* switch (requiredFeatures)
+* defs
+* use (x, y)
 
 The following attributes are supported for each of these:
 * stroke-width
