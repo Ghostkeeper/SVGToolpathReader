@@ -3,7 +3,7 @@
 	<defs>
 		<rect id="therect" x="10" y="15" width="30" height="20" transform="scale(4, 2)" stroke-width="1" />
 	</defs>
-	<use href="#therect" />
+	<use href="#therect" x="10" y="15" />
 	<use href="#therect" transform="rotate(20)" />
 	<g transform="translate(50, 0)">
 		<use xlink:href="#therect" />

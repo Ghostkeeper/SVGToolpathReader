@@ -251,6 +251,10 @@ class Parser:
 			if transform:
 				element_transform = element_copy.attrib.get("transform", "")
 				element_copy.attrib["transform"] = transform + " " + element_transform
+			x = use.attrib.get("x", "0")
+			y = use.attrib.get("y", "0")
+			element_transform = element_copy.attrib.get("transform", "")
+			element_copy.attrib["transform"] = "translate({x},{y}) ".format(x=x, y=y) + element_transform
 			element.append(element_copy)
 			element.remove(use)
 
