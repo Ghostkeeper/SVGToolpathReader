@@ -147,56 +147,56 @@ class Parser:
 			if name == "matrix":
 				if len(values) != 6:
 					continue #Invalid: Needs 6 arguments.
-				transformation = numpy.matmul(numpy.array(((values[0], values[1], values[2]), (values[3], values[4], values[5]), (0, 0, 1))), transformation)
+				transformation = numpy.matmul(transformation, numpy.array(((values[0], values[1], values[2]), (values[3], values[4], values[5]), (0, 0, 1))))
 			elif name == "translate":
 				if len(values) == 1:
 					values.append(0)
 				if len(values) != 2:
 					continue #Invalid: Translate needs at least 1 and at most 2 arguments.
-				transformation = numpy.matmul(numpy.array(((1, 0, values[0]), (0, 1, values[1]), (0, 0, 1))), transformation)
+				transformation = numpy.matmul(transformation, numpy.array(((1, 0, values[0]), (0, 1, values[1]), (0, 0, 1))))
 			elif name == "translatex":
 				if len(values) != 1:
 					continue #Invalid: Needs 1 argument.
-				transformation = numpy.matmul(numpy.array(((1, 0, values[0]), (0, 1, 0), (0, 0, 1))), transformation)
+				transformation = numpy.matmul(transformation, numpy.array(((1, 0, values[0]), (0, 1, 0), (0, 0, 1))))
 			elif name == "translatey":
 				if len(values) != 1:
 					continue #Invalid: Needs 1 argument.
-				transformation = numpy.matmul(numpy.array(((1, 0, 0), (0, 1, values[0]), (0, 0, 1))), transformation)
+				transformation = numpy.matmul(transformation, numpy.array(((1, 0, 0), (0, 1, values[0]), (0, 0, 1))))
 			elif name == "scale":
 				if len(values) == 1:
 					values.append(values[0]) #Y scale needs to be the same as X scale then.
 				if len(values) != 2:
 					continue #Invalid: Scale needs at least 1 and at most 2 arguments.
-				transformation = numpy.matmul(numpy.array(((values[0], 0, 0), (0, values[1], 0), (0, 0, 1))), transformation)
+				transformation = numpy.matmul(transformation, numpy.array(((values[0], 0, 0), (0, values[1], 0), (0, 0, 1))))
 			elif name == "scalex":
 				if len(values) != 1:
 					continue #Invalid: Needs 1 argument.
-				transformation = numpy.matmul(numpy.array(((values[0], 0, 0), (0, 1, 0), (0, 0, 1))), transformation)
+				transformation = numpy.matmul(transformation, numpy.array(((values[0], 0, 0), (0, 1, 0), (0, 0, 1))))
 			elif name == "scaley":
 				if len(values) != 1:
 					continue #Invalid: Needs 1 argument.
-				transformation = numpy.matmul(numpy.array(((1, 0, 0), (0, values[0], 0), (0, 0, 1))), transformation)
+				transformation = numpy.matmul(transformation, numpy.array(((1, 0, 0), (0, values[0], 0), (0, 0, 1))))
 			elif name == "rotate" or name == "rotatez": #Allow the 3D operation rotateZ as it simply rotates the 2D image in the same way.
 				if len(values) == 1:
 					values.append(0)
 					values.append(0)
 				if len(values) != 3:
 					continue #Invalid: Rotate needs 1 or 3 arguments.
-				transformation = numpy.matmul(numpy.array(((1, 0, -values[1]), (0, 1, -values[2]), (0, 0, 1))), transformation)
-				transformation = numpy.matmul(numpy.array(((math.cos(values[0] / 180 * math.pi), -math.sin(values[0] / 180 * math.pi), 0), (math.sin(values[0] / 180 * math.pi), math.cos(values[0] / 180 * math.pi), 0), (0, 0, 1))), transformation)
-				transformation = numpy.matmul(numpy.array(((1, 0, values[1]), (0, 1, -values[2]), (0, 0, 1))), transformation)
+				transformation = numpy.matmul(transformation, numpy.array(((1, 0, -values[1]), (0, 1, -values[2]), (0, 0, 1))))
+				transformation = numpy.matmul(transformation, numpy.array(((math.cos(values[0] / 180 * math.pi), -math.sin(values[0] / 180 * math.pi), 0), (math.sin(values[0] / 180 * math.pi), math.cos(values[0] / 180 * math.pi), 0), (0, 0, 1))))
+				transformation = numpy.matmul(transformation, numpy.array(((1, 0, values[1]), (0, 1, -values[2]), (0, 0, 1))))
 			elif name == "skew":
 				if len(values) != 2:
 					continue #Invalid: Needs 2 arguments.
-				transformation = numpy.matmul(numpy.array(((1, math.tan(values[0] / 180 * math.pi), 0), (math.tan(values[1] / 180 * math.pi), 1, 0), (0, 0, 1))), transformation)
+				transformation = numpy.matmul(transformation, numpy.array(((1, math.tan(values[0] / 180 * math.pi), 0), (math.tan(values[1] / 180 * math.pi), 1, 0), (0, 0, 1))))
 			elif name == "skewx":
 				if len(values) != 1:
 					continue #Invalid: Needs 1 argument.
-				transformation = numpy.matmul(numpy.array(((1, math.tan(values[0] / 180 * math.pi), 0), (0, 1, 0), (1, 0, 0))), transformation)
+				transformation = numpy.matmul(transformation, numpy.array(((1, math.tan(values[0] / 180 * math.pi), 0), (0, 1, 0), (1, 0, 0))))
 			elif name == "skewy":
 				if len(values) != 1:
 					continue #Invalid: Needs 1 argument.
-				transformation = numpy.matmul(numpy.array(((1, 0, 0), (math.tan(values[0] / 180 * math.pi), 1, 0), (1, 0, 0))), transformation)
+				transformation = numpy.matmul(transformation, numpy.array(((1, 0, 0), (math.tan(values[0] / 180 * math.pi), 1, 0), (1, 0, 0))))
 			else:
 				continue #Invalid: Unrecognised transformation operation (or 3D).
 
@@ -250,7 +250,7 @@ class Parser:
 			transform = use.attrib.get("transform", "")
 			if transform:
 				element_transform = element_copy.attrib.get("transform", "")
-				element_copy.attrib["transform"] = element_transform + " " + transform
+				element_copy.attrib["transform"] = transform + " " + element_transform
 			element.append(element_copy)
 			element.remove(use)
 
