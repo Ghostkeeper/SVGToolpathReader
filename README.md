@@ -65,6 +65,7 @@ Not all elements of the SVG specification will be printed. For some things, this
 * polyline (points)
 * line (x1, y1, x2, y2)
 * path (d)
+* style
 * switch (requiredFeatures)
 * defs
 * use (x, y)
@@ -72,6 +73,7 @@ Not all elements of the SVG specification will be printed. For some things, this
 The following attributes are supported for each of these:
 * stroke-width
 * transform
+* style
 
 Line Widths
 -----------
