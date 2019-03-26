@@ -53,6 +53,7 @@ WEIGHT_MODIFIERS = [
 ITALIC_INDICATORS = [
     'italic', 'ital','itali', 'it', 'bolditalic',
 ]
+SYSTEM_FONTS = {}
 
 def interpretModifiers( name ):
     """Heuristic attempt to get weight and italic data from font-name
@@ -118,7 +119,7 @@ def get( name, style=None ):
         style = tstyle
     set = SYSTEM_FONTS.get( name )
     if set:
-        if set.has_key( style ):
+        if style in set:
             return set[style]
         # try match on italics
         for key, value in set.items():

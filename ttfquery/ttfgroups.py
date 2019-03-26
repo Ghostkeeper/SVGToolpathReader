@@ -1,94 +1,50 @@
-#!/usr/bin/env python
 """Demo script to print ordered set of system fonts"""
-from ttfquery import describe, findsystem
-import sys, traceback, logging
+from __future__ import print_function
+from ttfquery import describe, ttffiles
+import sys, logging
 log = logging.getLogger( __name__ )
 
-def buildTable( filenames=None, failureCallback=None ):
+def buildTable( registry ):
     """Build table mapping {family:(font:{modifiers:(name,file)})}
 
     filenames -- if provided, list of filenames to scan,
     otherwise the full set of system fonts provided
     by findsystem will be used.
-    failureCallback -- if provided, a function taking three
-    arguments, the failing filename, an error-type code,
-    and the error object.  If processing should stop,
-    raise an error.
-    codes:
-    
-        0 -- couldn't open the font file
-        1 -- couldn't find modifiers in the font file
-        2 -- couldn't find font-name in the font file
-        3 -- couldn't find the generic family specifier
-        for the font
     """
-    if filenames is None:
-        filenames = findsystem.findFonts()
     table = {}
-    for filename in filenames:
-        try:
-            font = describe.openFont(filename)
-        except Exception, err:
-            if failureCallback:
-                failureCallback( filename, 0, err )
-        else:
-            try:
-                modifiers = describe.modifiers( font )
-            except (KeyError,AttributeError), err:
-                if failureCallback:
-                    failureCallback( filename, 1, err )
-                modifiers = (None,None)
-            try:
-                specificName, fontName = describe.shortName( font )
-            except (KeyError,AttributeError), err:
-                if failureCallback:
-                    failureCallback( filename, 2, err )
-            else:
-                try:
-                    specifier = describe.family(font)
-                except KeyError:
-                    if failureCallback:
-                        failureCallback( filename, 3, err )
-                else:
-                    table.setdefault(
-                        specifier,
-                        {}
-                    ).setdefault(
-                        fontName,
-                        {}
-                    )[modifiers] = (specificName,filename)
+    for major, minors in registry.families.items():
+        for minor, fonts in minors.items():
+            for fontname in fonts.keys():
+                table.setdefault(major,{}).setdefault(fontname, {})
+                font = registry.fonts.get(fontname)
+                if font:
+                    for modifier,specifics in sorted(font.items()):
+                        for specific in specifics:
+                            specificfont = registry.specificFonts[specific]
+                            table[major][fontname][modifier] = (
+                                specificfont.font_name,
+                                specificfont.file_name
+                            )
+                            break
     return table
 
-def interactiveCallback( file, code, err ):
-    """Simple error callback for interactive use"""
-    log.warn(
-        'Failed reading file %r (code %s):\n', file, code,
-    )
+def get_options():
+    base = ttffiles.get_options()
+    base.description = '''Display all of the major font-groups on the system'''
+    return base
 
 def main():
-    import time
-    t = time.clock()
-    if sys.argv[1:]:
-        directories = sys.argv[1:]
-        files = findsystem.findFonts(directories)
-    else:
-        files = None
-    table = buildTable(files, failureCallback=interactiveCallback)
-    t = time.clock()-t
-    keys = table.keys()
-    keys.sort()
-    for fam in keys:
-        print '_________________________'
-        print fam
-        fnts = table[fam].items()
-        fnts.sort()
-        for fnt,modset in fnts:
-            mods = modset.keys()
-            mods.sort()
-            mods = ",".join([ '%s%s'%( w, ['','(I)'][i&1]) for (w,i) in mods])
-            print '    ',fnt.ljust(32), '--', mods
-    log.info( 'Scan took %s seconds CPU time', t )
+    options = get_options().parse_args()
+    table = buildTable(registry=ttffiles.registry_for_options(options))
+    run_report(table)
 
-if __name__ == "__main__":
-    logging.basicConfig( level =logging.INFO )
-    main()
+def run_report(table):
+    keys = sorted(table.keys())
+    for fam in keys:
+        print('_________________________')
+        print(fam)
+        fnts = sorted( table[fam].items() )
+        for fnt,modset in fnts:
+            mods = sorted(modset.keys())
+            mods = ",".join([ '%s%s'%( w, ['','(I)'][i&1]) for (w,i) in mods])
+            print('    ',fnt.ljust(32), '--', mods)

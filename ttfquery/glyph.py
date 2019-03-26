@@ -73,19 +73,17 @@ class Glyph( object):
             # each contour out of the list and then closing it
             last = 0
             for e in charglyf.endPtsOfContours:
-                set = map(
-                    None,
+                set = zip(
                     list(coordinates[last:e+1])+list(coordinates[last:last+1]),
                     list(flags[last:e+1])+list(flags[last:last+1])
                 )
-                contours.append( set )
+                contours.append( list(set) )
                 last = e+1
             if coordinates[last:]:
-                contours.append( map(
-                    None,
+                contours.append( list(zip(
                     list(coordinates[last:])+list(coordinates[last:last+1]),
                     list(flags[last:])+list(flags[last:])
-                ) )
+                ) ))
         return contours
         
 def decomposeOutline( contour, steps=3 ):
@@ -118,12 +116,17 @@ def decomposeOutline( contour, steps=3 ):
     if len(contour)<3:
         return ()
     set = contour[:]
-    def on( ((Ax,Ay),Af) ):
-        """Is this record on the contour?"""
-        return Af==1
+    def on( record ):
+        """Is this record on the contour?
+        
+        record = ((Ax,Ay),Af)
+        """
+        return record[-1] == 1
 
-    def merge( ((Ax,Ay),Af), ((Bx,By),Bf)):
+    def merge( first, second):
         """Merge two off-point records into an on-point record"""
+        ((Ax,Ay),Af) = first 
+        ((Bx,By),Bf) = second
         return (((Ax+Bx)/2.0),((Ay+By))/2.0),1
     # create an expanded set so that all adjacent
     # off-curve items have an on-curve item added
