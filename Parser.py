@@ -21,7 +21,7 @@ from . import ExtrudeCommand
 from . import TravelCommand
 
 #Import FontTools into sys.modules so that the TTFQuery library can import it and the FontTools library can do absolute imports.
-this_plugin_path = UM.PluginRegistry.PluginRegistry.getInstance().getPluginPath(os.path.basename(os.path.dirname(__file__)))
+this_plugin_path = os.path.dirname(__file__)
 font_tools_path = os.path.join(this_plugin_path, "fontTools", "__init__.py")
 spec = importlib.util.spec_from_file_location("fontTools", font_tools_path)
 font_tools_module = importlib.util.module_from_spec(spec)
