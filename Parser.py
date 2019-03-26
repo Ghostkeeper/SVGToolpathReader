@@ -25,8 +25,8 @@ this_plugin_path = os.path.dirname(__file__)
 font_tools_path = os.path.join(this_plugin_path, "fontTools", "__init__.py")
 spec = importlib.util.spec_from_file_location("fontTools", font_tools_path)
 font_tools_module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(font_tools_module)
 sys.modules["fontTools"] = font_tools_module
+spec.loader.exec_module(font_tools_module)
 import ttfquery #For rendering fonts.
 
 class Parser:
