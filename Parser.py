@@ -615,6 +615,8 @@ class Parser:
 			yield from self.parse_svg(element)
 		elif tag == "switch":
 			yield from self.parse_switch(element)
+		elif tag == "text":
+			yield from self.parse_text(element)
 		else:
 			UM.Logger.Logger.log("w", "Unknown element {element_tag}.".format(element_tag=tag))
 			#SVG specifies that you should ignore any unknown elements.
@@ -1058,3 +1060,27 @@ class Parser:
 		else:
 			for child in element:
 				yield from self.parse(child)
+
+	def parse_text(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
+		"""
+		Parses the Text element, which writes a bit of text.
+		:param element: The Text element.
+		:return: A sequence of commands necessary to write the text.
+		"""
+		x = self.convert_float(element.attrib, "x", 0)
+		y = self.convert_float(element.attrib, "y", 0)
+		dx = self.convert_float(element.attrib, "dx", 0)
+		dy = self.convert_float(element.attrib, "dy", 0)
+		rotate = self.convert_float(element.attrib, "rotate", 0)
+		length_adjust = element.attrib.get("lengthAdjust", "spacing")
+		text_length = self.convert_float(element.attrib, "textLength", 0) #TODO: Support percentages.
+		text = element.text
+
+		font = ttfquery.describe.openFont("C:\\Windows\\Fonts\\coolvetica rg.ttf") #TODO: Use correct font, and don't hard-code it.
+		for character in text:
+			glyph_name = ttfquery.glyphquery.glyphName(font, character)
+			glyph = ttfquery.glyph.Glyph(glyph_name)
+			contours = glyph.calculateContours(font)
+			for contour in contours:
+				for point, flag in contour:
+					UM.Logger.Logger.log("d", "Found coordinate {point} with flag {flag}.".format(point=point, flag=flag)) #TODO: Draw font paths.
