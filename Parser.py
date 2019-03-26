@@ -28,6 +28,14 @@ font_tools_module = importlib.util.module_from_spec(spec)
 sys.modules["fontTools"] = font_tools_module
 spec.loader.exec_module(font_tools_module)
 import ttfquery #For rendering fonts.
+ttfquery_path = os.path.join(this_plugin_path, "ttfquery", "__init__.py")
+spec = importlib.util.spec_from_file_location("ttfquery", ttfquery_path)
+ttfquery_module = importlib.util.module_from_spec(spec)
+sys.modules["ttfquery"] = ttfquery_module
+spec.loader.exec_module(ttfquery_module)
+import ttfquery.describe #For loading fonts.
+import ttfquery.glyph #For rendering glyphs of fonts.
+import ttfquery.glyphquery #For finding glyphs in fonts.
 
 class Parser:
 	"""
