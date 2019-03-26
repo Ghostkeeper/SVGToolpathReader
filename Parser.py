@@ -27,7 +27,6 @@ spec = importlib.util.spec_from_file_location("fontTools", font_tools_path)
 font_tools_module = importlib.util.module_from_spec(spec)
 sys.modules["fontTools"] = font_tools_module
 spec.loader.exec_module(font_tools_module)
-import ttfquery #For rendering fonts.
 ttfquery_path = os.path.join(this_plugin_path, "ttfquery", "__init__.py")
 spec = importlib.util.spec_from_file_location("ttfquery", ttfquery_path)
 ttfquery_module = importlib.util.module_from_spec(spec)
