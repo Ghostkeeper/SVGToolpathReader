@@ -64,32 +64,32 @@ class Parser:
 		new_position = numpy.matmul(transformation, position)
 		return new_position[0], new_position[1]
 
-	def convert_css(self, css) -> typing.Tuple[typing.Optional[str], typing.Optional[str]]:
+	def convert_css(self, css) -> typing.Dict[str, str]:
 		"""
 		Obtains the CSS properties that we can use from a piece of CSS.
 		:param css: The piece of CSS to parse.
-		:return: The values that we can do something with from CSS:
-		* The value for the stroke-width property.
-		* The value for the transform property.
+		:return: A dictionary containing all CSS attributes that we can parse
+		that were discovered in the CSS string.
 		"""
-		stroke_width = None
-		transform = None
+		is_float = lambda s: re.fullmatch(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", s) is not None
+		tautology = lambda s: True
+		attribute_validate = { #For each supported attribute, a predicate to validate whether it is correctly formed.
+			"stroke-width": is_float,
+			"transform": tautology
+		}
+		result = {}
 
 		pieces = css.split(";")
 		for piece in pieces:
 			piece = piece.strip()
-			if piece.startswith("stroke-width:"):
-				piece = piece[len("stroke-width:"):]
-				piece = piece.strip()
-				try:
-					stroke_width = str(float(piece))
-				except ValueError: #Not parsable as float.
-					pass #Leave it at the default or the attribute.
-			elif piece.startswith("transform:"):
-				piece = piece[len("transform:"):]
-				transform = piece.strip()
+			for attribute in attribute_validate:
+				if piece.startswith(attribute + ":"):
+					piece = piece[len(attribute) + 1:]
+					piece = piece.strip()
+					if attribute_validate[attribute](piece): #Only store the attribute if it has a valid value.
+						result[attribute] = piece
 
-		return stroke_width, transform
+		return result
 
 	def convert_float(self, dictionary, attribute, default: float) -> float:
 		"""
@@ -566,42 +566,44 @@ class Parser:
 		:param element: The parent element whose attributes have to be applied
 		to all descendants.
 		"""
-		stroke_width = None
-		transform = element.attrib.get("transform")
+		css = {} #Dictionary of all the attributes that we'll track.
+
+		#Special case CSS entries that have an SVG attribute.
+		if "transform" in element.attrib:
+			css["transform"] = element.attrib["transform"]
 		if "stroke-width" in element.attrib:
 			try:
-				stroke_width = str(float(element.attrib["stroke-width"]))
-			except ValueError: #Not parsable as float.
+				css["stroke-width"] = str(float(element.attrib["stroke-width"]))
+			except ValueError: #Not parseable as float.
 				pass
 
+		#Find <style> subelements and add them to our CSS.
 		for child in element:
-			if child.tag[len(self._namespace):].lower() == "style":
-				css_stroke_width, css_transform = self.convert_css(child.text)
-				if css_stroke_width is not None:
-					stroke_width = css_stroke_width
-				if css_transform is not None:
-					transform = css_transform
+			if child.tag.lower() == self._namespace + "style":
+				style_css = self.convert_css(child.text)
+				css.update(style_css) #Merge into main CSS file, overwriting attributes if necessary.
 
-		if "style" in element.attrib: #CSS overrides attribute.
-			css_stroke_width, css_transform = self.convert_css(element.attrib["style"])
-			if css_stroke_width is not None:
-				stroke_width = css_stroke_width
-			if css_transform is not None:
-				transform = css_transform
+		#CSS in the 'style' attribute overrides <style> element and separate attributes.
+		if "style" in element.attrib:
+			style_css = self.convert_css(element.attrib["style"])
+			css.update(style_css)
 			del element.attrib["style"]
 
-		if stroke_width is not None:
-			element.attrib["stroke-width"] = stroke_width
-		if transform is not None:
-			element.attrib["transform"] = transform
+		#Put all CSS attributes in the attrib dict, even if they are not normally available in SVG. It'll be easier to parse there if we keep it separated.
+		tracked_css = {"stroke-width", "transform"}
+		for attribute in css:
+			element.attrib[attribute] = css[attribute]
 
+		#Pass CSS on to children.
 		for child in element:
-			if stroke_width is not None and "stroke-width" not in child.attrib:
-				child.attrib["stroke-width"] = stroke_width
-			if transform is not None:
-				if "transform" not in child.attrib:
-					child.attrib["transform"] = ""
-				child.attrib["transform"] = transform + " " + child.attrib["transform"]
+			for attribute in css:
+				if attribute == "transform": #Transform is special because it adds on to the children's transforms.
+					if "transform" not in child.attrib:
+						child.attrib["transform"] = ""
+					child.attrib["transform"] = css["transform"] + " " + child.attrib["transform"]
+				else:
+					if attribute not in child.attrib:
+						child.attrib[attribute] = css[attribute]
 			self.inheritance(child)
 
 	def parse(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
