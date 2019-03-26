@@ -6,15 +6,28 @@
 
 import copy #Copy nodes for <use> elements.
 import cura.Settings.ExtruderManager #To get settings from the active extruder.
+import importlib.util #To import FontTools.
 import math #Computing curves and such.
 import numpy #Transformation matrices.
+import os.path #To import FontTools.
 import re #Parsing D attributes of paths.
+import sys #To import FontTools.
 import typing
 import UM.Logger #To log parse errors and warnings.
+import UM.PluginRegistry #To import FontTools.
 import xml.etree.ElementTree #Just typing.
 
 from . import ExtrudeCommand
 from . import TravelCommand
+
+#Import FontTools into sys.modules so that the TTFQuery library can import it and the FontTools library can do absolute imports.
+this_plugin_path = UM.PluginRegistry.PluginRegistry.getInstance().getPluginPath(os.path.basename(os.path.dirname(__file__)))
+font_tools_path = os.path.join(this_plugin_path, "fontTools", "__init__.py")
+spec = importlib.util.spec_from_file_location("fontTools", font_tools_path)
+font_tools_module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(font_tools_module)
+sys.modules["fontTools"] = font_tools_module
+import ttfquery #For rendering fonts.
 
 class Parser:
 	"""
@@ -25,6 +38,9 @@ class Parser:
 	_xlink_namespace = "{http://www.w3.org/1999/xlink}" #Namespace prefix for XLink references within the document.
 
 	def __init__(self):
+		"""
+		Initialises some fields that we can re-use during parsing.
+		"""
 		extruder_stack = cura.Settings.ExtruderManager.ExtruderManager.getInstance().getActiveExtruderStack()
 		self.resolution = extruder_stack.getProperty("meshfix_maximum_resolution", "value")
 
