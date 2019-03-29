@@ -29,7 +29,7 @@ class Parser:
 		extruder_stack = cura.Settings.ExtruderManager.ExtruderManager.getInstance().getActiveExtruderStack()
 		self.resolution = extruder_stack.getProperty("meshfix_maximum_resolution", "value")
 
-		self.system_fonts = {"times.ttf", "arial.ttf", "MTCORSVA.TTF", "impact.ttf", "cour.ttf"} #TODO: Detect system fonts.
+		self.system_fonts = {"Times New Roman", "Arial", "MonoType Corsova", "Impact", "Courier New", "Segoe UI"} #TODO: Detect system fonts.
 		if UM.Platform.isWindows():
 			self.safe_fonts = {
 				"serif": "Times New Roman",
@@ -82,7 +82,8 @@ class Parser:
 		tautology = lambda s: True
 		attribute_validate = { #For each supported attribute, a predicate to validate whether it is correctly formed.
 			"stroke-width": is_float,
-			"transform": tautology
+			"transform": tautology,
+			"font-family": tautology
 		}
 		result = {}
 
@@ -112,6 +113,24 @@ class Parser:
 			return float(dictionary.get(attribute, default))
 		except ValueError: #Not parsable as float.
 			return default
+
+	def convert_font_family(self, font_family) -> str:
+		"""
+		Parses a font-family, converting it to the file name of a single font
+		that is installed on the system.
+		:param font_family: The font-family property from CSS.
+		:return: The file name of a font that is installed on the system that
+		most closely approximates the desired font family.
+		"""
+		fonts = font_family.split(",")
+		fonts = [font.strip() for font in fonts]
+
+		for font in fonts:
+			if font in self.safe_fonts:
+				font = self.safe_fonts[font]
+			if font in self.system_fonts:
+				return font
+		return self.safe_fonts["sans-serif"] #None of these fonts are available.
 
 	def convert_points(self, points) -> typing.Generator[typing.Tuple[float, float], None, None]:
 		"""
