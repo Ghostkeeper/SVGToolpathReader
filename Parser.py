@@ -14,6 +14,7 @@ import re #Parsing D attributes of paths.
 import sys #To import FontTools.
 import typing
 import UM.Logger #To log parse errors and warnings.
+import UM.Platform #To select the correct fonts.
 import UM.PluginRegistry #To import FontTools.
 import xml.etree.ElementTree #Just typing.
 
@@ -50,6 +51,35 @@ class Parser:
 		"""
 		extruder_stack = cura.Settings.ExtruderManager.ExtruderManager.getInstance().getActiveExtruderStack()
 		self.resolution = extruder_stack.getProperty("meshfix_maximum_resolution", "value")
+
+		self.system_fonts = {"times.ttf", "arial.ttf", "MTCORSVA.TTF", "impact.ttf", "cour.ttf"} #TODO: Detect system fonts.
+		if UM.Platform.isWindows():
+			self.safe_fonts = {
+				"serif": "Times New Roman",
+				"sans-serif": "Arial",
+				"cursive": "MonoType Corsova",
+				"fantasy": "Impact",
+				"monospace": "Courier New",
+				"system-ui": "Segoe UI"
+			}
+		elif UM.Platform.isOSX():
+			self.safe_fonts = {
+				"serif": "Times",
+				"sans-serif": "Helvetica",
+				"cursive": "Apple Chancery",
+				"fantasy": "Papyrus",
+				"monospace": "Courier",
+				"system-ui": ".SF NS Text"
+			}
+		elif UM.Platform.isLinux():
+			self.safe_fonts = { #Linux has its safe fonts available through the system fc-match system, which automatically redirects it to the system's preference.
+				"serif": "serif",
+				"sans-serif": "sans-serif",
+				"cursive": "cursive",
+				"fantasy": "fantasy",
+				"monospace": "monospace",
+				"system-ui": "system-ui"
+			}
 
 	def apply_transformation(self, x, y, transformation) -> typing.Tuple[float, float]:
 		"""
