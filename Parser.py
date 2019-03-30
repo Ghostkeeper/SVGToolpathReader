@@ -42,7 +42,7 @@ class Parser:
 		self.resolution = extruder_stack.getProperty("meshfix_maximum_resolution", "value")
 
 		self.system_fonts = {"Times New Roman", "Arial", "MonoType Corsova", "Impact", "Courier New", "Segoe UI"} #TODO: Detect system fonts.
-		if UM.Platform.isWindows():
+		if UM.Platform.Platform.isWindows():
 			self.safe_fonts = {
 				"serif": "Times New Roman",
 				"sans-serif": "Arial",
@@ -51,7 +51,7 @@ class Parser:
 				"monospace": "Courier New",
 				"system-ui": "Segoe UI"
 			}
-		elif UM.Platform.isOSX():
+		elif UM.Platform.Platform.isOSX():
 			self.safe_fonts = {
 				"serif": "Times",
 				"sans-serif": "Helvetica",
@@ -60,7 +60,7 @@ class Parser:
 				"monospace": "Courier",
 				"system-ui": ".SF NS Text"
 			}
-		elif UM.Platform.isLinux():
+		elif UM.Platform.Platform.isLinux():
 			self.safe_fonts = { #Linux has its safe fonts available through the system fc-match system, which automatically redirects it to the system's preference.
 				"serif": "serif",
 				"sans-serif": "sans-serif",
