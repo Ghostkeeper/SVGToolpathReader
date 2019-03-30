@@ -6,9 +6,12 @@
 
 import copy #Copy nodes for <use> elements.
 import cura.Settings.ExtruderManager #To get settings from the active extruder.
+import importlib #To import the FreeType library.
 import math #Computing curves and such.
 import numpy #Transformation matrices.
+import os.path #To import the FreeType library.
 import re #Parsing D attributes of paths.
+import sys #To import the FreeType library.
 import typing
 import UM.Logger #To log parse errors and warnings.
 import UM.Platform #To select the correct fonts.
@@ -16,6 +19,15 @@ import xml.etree.ElementTree #Just typing.
 
 from . import ExtrudeCommand
 from . import TravelCommand
+
+#Import FreeType into sys.modules so that the library can reference itself with absolute imports.
+this_plugin_path = os.path.dirname(__file__)
+freetype_path = os.path.join(this_plugin_path, "freetype", "__init__.py")
+spec = importlib.util.spec_from_file_location("freetype", freetype_path)
+freetype_module = importlib.util.module_from_spec(spec)
+sys.modules["freetype"] = freetype_module
+spec.loader.exec_module(freetype_module)
+import freetype
 
 class Parser:
 	"""
