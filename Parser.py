@@ -1139,11 +1139,31 @@ class Parser:
 		text_length = self.convert_float(element.attrib, "textLength", 0) #TODO: Support percentages.
 		text = element.text
 
-		font = ttfquery.describe.openFont("C:\\Windows\\Fonts\\coolvetica rg.ttf") #TODO: Use correct font, and don't hard-code it.
-		for character in text:
-			glyph_name = ttfquery.glyphquery.glyphName(font, character)
-			glyph = ttfquery.glyph.Glyph(glyph_name)
-			contours = glyph.calculateContours(font)
-			for contour in contours:
-				for point, flag in contour:
-					UM.Logger.Logger.log("d", "Found coordinate {point} with flag {flag}.".format(point=point, flag=flag)) #TODO: Draw font paths.
+		face = freetype.Face("C:\\Windows\\Fonts\\coolvetica rg.ttf") #TODO: Use correct font, and don't hard-code it.
+		face.set_char_size(48 * 64)
+		for index, character in enumerate(text):
+			face.load_char(character)
+			outline = face.glyph.outline
+			start = 0
+			for contour_index in range(len(outline.contours)):
+				end = outline.contours[contour_index]
+				points = outline.points[start:end + 1]
+				points.append(points[0]) #Close the polygon.
+				tags = outline.tags[start:end + 1]
+				tags.append(tags[0])
+
+				segments = [[points[0]]]
+				for point_index in range(1, len(points)):
+					segments[-1].append(points[point_index])
+					if tags[point_index] & (1 << 0) and point_index < (len(points) - 1): #MoveTo command, so a new segment.
+						segments.append([points[point_index]])
+				yield TravelCommand.TravelCommand(points[0][0] / 100, points[0][1] / 100)
+				for segment in segments:
+					if len(segment) == 2:
+						yield ExtrudeCommand.ExtrudeCommand(segment[1][0] / 100, segment[1][1] / 100)
+					elif len(segment) == 3:
+						UM.Logger.Logger.log("d", "Cubic curve") #TODO.
+					else:
+						UM.Logger.Logger.log("d", "Multiple cubic curves") #TODO.
+
+				start = end + 1
