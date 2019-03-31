@@ -1152,12 +1152,15 @@ class Parser:
 				tags = outline.tags[start:end + 1]
 				tags.append(tags[0])
 
-				segments = [[points[0]]]
+				#Separate the points into separate segments between points ON the curve (first bit of tag is 0).
+				segments = [[points[0]]] #First point is always on the curve.
 				for point_index in range(1, len(points)):
 					segments[-1].append(points[point_index])
-					if tags[point_index] & (1 << 0) and point_index < (len(points) - 1): #MoveTo command, so a new segment.
+					if tags[point_index] & 0b1 and point_index < (len(points) - 1): #First bit is unset, so this point is on the curve and starts a new segment.
 						segments.append([points[point_index]])
-				yield TravelCommand.TravelCommand(points[0][0] / 100, points[0][1] / 100)
+
+				yield TravelCommand.TravelCommand(points[0][0] / 100, points[0][1] / 100) #Move to first segment.
+
 				for segment in segments:
 					if len(segment) == 2:
 						yield ExtrudeCommand.ExtrudeCommand(segment[1][0] / 100, segment[1][1] / 100)
