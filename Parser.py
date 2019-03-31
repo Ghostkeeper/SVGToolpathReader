@@ -1137,6 +1137,8 @@ class Parser:
 		rotate = self.convert_float(element.attrib, "rotate", 0)
 		length_adjust = element.attrib.get("lengthAdjust", "spacing")
 		text_length = self.convert_float(element.attrib, "textLength", 0) #TODO: Support percentages.
+		line_width = self.convert_float(element.attrib, "stroke-width", 0)
+		transformation = self.convert_transform(element.attrib.get("transform", ""))
 		text = element.text
 
 		face = freetype.Face("C:\\Windows\\Fonts\\coolvetica rg.ttf") #TODO: Use correct font, and don't hard-code it.
@@ -1154,21 +1156,51 @@ class Parser:
 				tags = outline.tags[start:end + 1]
 				tags.append(tags[0])
 
-				#Separate the points into separate segments between points ON the curve (first bit of tag is 0).
-				segments = [[points[0]]] #First point is always on the curve.
+				current_x, current_y = points[0][0], points[0][1]
+				current_tx, current_ty = self.apply_transformation(current_x, current_y, transformation)
+				yield TravelCommand.TravelCommand(current_tx, current_ty) #Move to first segment.
+
+				current_curve = [] #Between every on-curve point we'll draw a curve. These are the cubic handles of the curve.
 				for point_index in range(1, len(points)):
-					segments[-1].append(points[point_index])
-					if tags[point_index] & 0b1 and point_index < (len(points) - 1): #First bit is unset, so this point is on the curve and starts a new segment.
-						segments.append([points[point_index]])
-
-				yield TravelCommand.TravelCommand(points[0][0] / 100, points[0][1] / 100) #Move to first segment.
-
-				for segment in segments:
-					if len(segment) == 2:
-						yield ExtrudeCommand.ExtrudeCommand(segment[1][0] / 100, segment[1][1] / 100)
-					elif len(segment) == 3:
-						UM.Logger.Logger.log("d", "Cubic curve") #TODO.
-					else:
-						UM.Logger.Logger.log("d", "Multiple cubic curves") #TODO.
+					current_curve.append(points[point_index])
+					if tags[point_index] & 0b1: #First bit is unset, so this point is on the curve and finishes the segment.
+						#Actually extrude the curve.
+						while len(current_curve) > 0:
+							if len(current_curve) == 1: #Just enough left for a straight line, whatever the flags of the last point are.
+								current_x, current_y = current_curve[0]
+								current_tx, current_ty = self.apply_transformation(current_x, current_y, transformation)
+								yield ExtrudeCommand.ExtrudeCommand(current_tx, current_ty, line_width)
+								current_curve = []
+							elif len(current_curve) == 2: #Just enough left for a quadratic curve, even though the curve specified cubic. Shouldn't happen if the font was correctly formed.
+								yield from self.extrude_quadratic(current_x, current_y,
+								                                  current_curve[0][0], current_curve[0][1],
+								                                  current_curve[1][0], current_curve[1][1],
+								                                  line_width, transformation)
+								current_x = current_curve[1][0]
+								current_y = current_curve[1][1]
+								current_curve = []
+							elif len(current_curve) == 3: #Just enough left for a single cubic curve.
+								yield from self.extrude_cubic(current_x, current_y,
+								                              current_curve[0][0], current_curve[0][1],
+								                              current_curve[1][0], current_curve[1][1],
+								                              current_curve[2][0], current_curve[2][1],
+								                              line_width, transformation)
+								current_x = current_curve[2][0]
+								current_y = current_curve[2][1]
+								current_curve = []
+							else: #Multiple curves with implied midway points.
+								end_x = (current_curve[1][0] + current_curve[2][0]) / 2
+								end_y = (current_curve[1][1] + current_curve[2][1]) / 2
+								yield from self.extrude_cubic(current_x, current_y,
+								                              current_curve[0][0], current_curve[0][1],
+								                              current_curve[1][0], current_curve[1][1],
+								                              end_x, end_y,
+								                              line_width, transformation)
+								current_x = end_x
+								current_y = end_y
+								current_curve = current_curve[2:]
+						continue
+					if tags[point_index] & 0b10 == 0: #If second bit is unset, this is a quadratic curve which we can render as cubic curve by putting it in twice.
+						current_curve.append(points[point_index])
 
 				start = end + 1
