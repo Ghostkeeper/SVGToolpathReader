@@ -1147,6 +1147,8 @@ class Parser:
 			start = 0
 			for contour_index in range(len(outline.contours)):
 				end = outline.contours[contour_index]
+				if end < start:
+					continue
 				points = outline.points[start:end + 1]
 				points.append(points[0]) #Close the polygon.
 				tags = outline.tags[start:end + 1]
