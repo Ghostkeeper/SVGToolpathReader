@@ -9,9 +9,11 @@ import cura.Settings.ExtruderManager #To get settings from the active extruder.
 import importlib #To import the FreeType library.
 import math #Computing curves and such.
 import numpy #Transformation matrices.
+import os #To find system fonts.
 import os.path #To import the FreeType library.
-import re #Parsing D attributes of paths.
+import re #Parsing D attributes of paths, and font paths for Linux.
 import sys #To import the FreeType library.
+import threading #To find system fonts asynchronously.
 import typing
 import UM.Logger #To log parse errors and warnings.
 import UM.Platform #To select the correct fonts.
@@ -41,7 +43,9 @@ class Parser:
 		extruder_stack = cura.Settings.ExtruderManager.ExtruderManager.getInstance().getActiveExtruderStack()
 		self.resolution = extruder_stack.getProperty("meshfix_maximum_resolution", "value")
 
-		self.system_fonts = {"Times New Roman", "Arial", "MonoType Corsova", "Impact", "Courier New", "Segoe UI"} #TODO: Detect system fonts.
+		self.system_fonts = {} #type: typing.Dict[str, typing.List[freetype.Face]] #Mapping from family name to list of font faces.
+		self.detect_fonts_thread = threading.Thread(target=self.find_system_fonts)
+		self.detect_fonts_thread.start()
 		if UM.Platform.Platform.isWindows():
 			self.safe_fonts = {
 				"serif": "Times New Roman",
@@ -592,6 +596,62 @@ class Parser:
 			definitions[definition.attrib["id"]] = definition
 		return definitions
 
+	def find_system_fonts(self) -> None:
+		"""
+		Finds all the fonts installed on the system, arranged by their font
+		family name.
+
+		This takes a while. It will scan through all the font files in the font
+		directories of your system. It is advisable to run this in a thread.
+
+		The result gets put in self.system_fonts.
+		"""
+		if UM.Platform.Platform.isWindows():
+			font_paths = {os.path.join(os.getenv("WINDIR"), "Fonts")}
+		else:
+			font_paths = set()
+			chkfontpath_executable = "/usr/sbin/chkfontpath"
+			if os.path.isfile(chkfontpath_executable):
+				chkfontpath_stdout = os.popen(chkfontpath_executable).readlines()
+				path_match = re.compile(r"\d+: (.+)")
+				for line in chkfontpath_stdout:
+					result = path_match.match(line)
+					if result:
+						font_paths.add(result.group(1))
+			else:
+				font_paths = {
+					os.path.expanduser("~/Library/Fonts"),
+					os.path.expanduser("~/.fonts"),
+					"/Library/Fonts",
+					"/Network/Library/Fonts",
+					"/System/Library/Fonts",
+					"/System Folder/Fonts",
+					"/usr/X11R6/lib/X11/fonts/TTF",
+					"/usr/lib/openoffice/share/fonts/truetype",
+					"/usr/share/fonts",
+					"/usr/local/share/fonts"
+				}
+
+		for font_path in font_paths:
+			if not os.path.isdir(font_path):
+				continue #This one doesn't exist.
+			for root, _, filenames in os.walk(font_path):
+				for filename in filenames:
+					filename = os.path.join(root, filename)
+					try:
+						face = freetype.Face(filename)
+					except freetype.FT_Exception: #Unrecognised file format. Lots of fonts are pixel-based and FreeType can't read those.
+						continue
+					try:
+						family_name = face.family_name.decode("utf-8")
+					except: #Family name is not UTF-8?
+						continue
+					if family_name not in self.system_fonts:
+						self.system_fonts[family_name] = []
+					self.system_fonts[family_name].append(face)
+
+		UM.Logger.Logger.log("d", "Completed scan for system fonts.")
+
 	def inheritance(self, element) -> None:
 		"""
 		Pass inherited properties of elements down through the node tree.
@@ -1139,9 +1199,11 @@ class Parser:
 		text_length = self.convert_float(element.attrib, "textLength", 0) #TODO: Support percentages.
 		line_width = self.convert_float(element.attrib, "stroke-width", 0)
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
+		self.detect_fonts_thread.join(timeout=10)
+		font_name = self.convert_font_family(element.attrib.get("font-family", "sans-serif"))
 		text = element.text
 
-		face = freetype.Face("C:\\Windows\\Fonts\\coolvetica rg.ttf") #TODO: Use correct font, and don't hard-code it.
+		face = self.system_fonts[font_name][0] #TODO: Select correct variant from family of fonts.
 		face.set_char_size(48 * 64)
 		for index, character in enumerate(text):
 			face.load_char(character)
