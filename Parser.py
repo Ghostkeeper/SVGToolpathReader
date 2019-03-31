@@ -48,21 +48,21 @@ class Parser:
 		self.detect_fonts_thread.start()
 		if UM.Platform.Platform.isWindows():
 			self.safe_fonts = {
-				"serif": "Times New Roman",
-				"sans-serif": "Arial",
-				"cursive": "MonoType Corsova",
-				"fantasy": "Impact",
-				"monospace": "Courier New",
-				"system-ui": "Segoe UI"
+				"serif": "times new roman",
+				"sans-serif": "arial",
+				"cursive": "monotype corsova",
+				"fantasy": "impact",
+				"monospace": "courier new",
+				"system-ui": "segoe ui"
 			}
 		elif UM.Platform.Platform.isOSX():
 			self.safe_fonts = {
-				"serif": "Times",
-				"sans-serif": "Helvetica",
-				"cursive": "Apple Chancery",
-				"fantasy": "Papyrus",
-				"monospace": "Courier",
-				"system-ui": ".SF NS Text"
+				"serif": "times",
+				"sans-serif": "helvetica",
+				"cursive": "apple chancery",
+				"fantasy": "papyrus",
+				"monospace": "courier",
+				"system-ui": ".sf ns text"
 			}
 		elif UM.Platform.Platform.isLinux():
 			self.safe_fonts = { #Linux has its safe fonts available through the system fc-match system, which automatically redirects it to the system's preference.
@@ -643,7 +643,7 @@ class Parser:
 					except freetype.FT_Exception: #Unrecognised file format. Lots of fonts are pixel-based and FreeType can't read those.
 						continue
 					try:
-						family_name = face.family_name.decode("utf-8")
+						family_name = face.family_name.decode("utf-8").lower()
 					except: #Family name is not UTF-8?
 						continue
 					if family_name not in self.system_fonts:
@@ -1200,7 +1200,7 @@ class Parser:
 		line_width = self.convert_float(element.attrib, "stroke-width", 0)
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
 		self.detect_fonts_thread.join(timeout=10)
-		font_name = self.convert_font_family(element.attrib.get("font-family", "sans-serif"))
+		font_name = self.convert_font_family(element.attrib.get("font-family", "sans-serif").lower())
 		text = element.text
 
 		face = self.system_fonts[font_name][0] #TODO: Select correct variant from family of fonts.
