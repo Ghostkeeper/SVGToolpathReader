@@ -117,7 +117,7 @@ class Parser:
 
 		return result
 
-	def convert_dimension(self, dimension, parent_size=None) -> float:
+	def convert_length(self, dimension, parent_size=None) -> float:
 		"""
 		Converts a CSS dimension to millimetres.
 
@@ -1257,7 +1257,7 @@ class Parser:
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
 		self.detect_fonts_thread.join(timeout=10) #If this times out, the list of fonts will be incomplete so we might select the wrong font. Oh well.
 		font_name = self.convert_font_family(element.attrib.get("font-family", "sans-serif").lower())
-		font_size = self.convert_dimension(element.attrib.get("font-size", "12pt"))
+		font_size = self.convert_length(element.attrib.get("font-size", "12pt"))
 		text = element.text
 
 		face = self.system_fonts[font_name][0] #TODO: Select correct variant from family of fonts.
