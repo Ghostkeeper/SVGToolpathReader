@@ -42,6 +42,8 @@ class Parser:
 	def __init__(self):
 		extruder_stack = cura.Settings.ExtruderManager.ExtruderManager.getInstance().getActiveExtruderStack()
 		self.resolution = extruder_stack.getProperty("meshfix_maximum_resolution", "value")
+		self.machine_width = extruder_stack.getProperty("machine_width", "value")
+		self.machine_depth = extruder_stack.getProperty("machine_depth", "value")
 
 		self.system_fonts = {} #type: typing.Dict[str, typing.List[freetype.Face]] #Mapping from family name to list of font faces.
 		self.detect_fonts_thread = threading.Thread(target=self.find_system_fonts)
@@ -114,6 +116,56 @@ class Parser:
 						result[attribute] = piece
 
 		return result
+
+	def convert_dimension(self, dimension, parent_size=None) -> float:
+		"""
+		Converts a CSS dimension to millimetres.
+
+		For pixels, this assumes a resolution of 96 dots per inch.
+		:param dimension: A CSS dimension.
+		:param parent_size: The size in millimetres of the element that contains
+		the element that we're getting the dimension for. If ``None``, this will
+		be set to the printer's width.
+		:return: How many millimetres long that dimension is.
+		"""
+		number = re.match(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", dimension)
+		if not number:
+			return 0
+		number = number.group(0)
+		unit = dimension[len(number):].strip().lower()
+		number = float(number)
+
+		if unit == "mm":
+			return number
+		elif unit == "px":
+			return number / 96 * 25.4
+		elif unit == "cm":
+			return number * 10
+		elif unit == "q":
+			return number / 4
+		elif unit == "in":
+			return number * 25.4
+		elif unit == "pc":
+			return number * 12 / 72 * 25.4
+		elif unit == "pt":
+			return number / 72 * 25.4
+
+		elif unit == "%":
+			if parent_size is None:
+				parent_size = self.machine_width
+			return number / 100 * parent_size
+		elif unit == "vh" or unit == "vb":
+			return number / 100 * self.machine_depth
+		elif unit == "vw" or unit == "vi":
+			return number / 100 * self.machine_width
+		elif unit == "vmin":
+			return number / 100 * min(self.machine_width, self.machine_depth)
+		elif unit == "vmax":
+			return number / 100 * max(self.machine_width, self.machine_depth)
+
+		else: #Assume mm.
+			return number
+		#TODO: Implement font-relative sizes.
 
 	def convert_float(self, dictionary, attribute, default: float) -> float:
 		"""
@@ -1201,10 +1253,11 @@ class Parser:
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
 		self.detect_fonts_thread.join(timeout=10)
 		font_name = self.convert_font_family(element.attrib.get("font-family", "sans-serif").lower())
+		font_size = self.convert_dimension(element.attrib.get("font-size", "12pt"))
 		text = element.text
 
 		face = self.system_fonts[font_name][0] #TODO: Select correct variant from family of fonts.
-		face.set_char_size(48 * 64)
+		face.set_char_size(int(round(font_size / 25.4 * 72 * 64)))
 		for index, character in enumerate(text):
 			face.load_char(character)
 			outline = face.glyph.outline
