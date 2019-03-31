@@ -198,7 +198,11 @@ class Parser:
 				font = self.safe_fonts[font]
 			if font in self.system_fonts:
 				return font
-		return self.safe_fonts["sans-serif"] #None of these fonts are available.
+		if self.safe_fonts["sans-serif"] in self.system_fonts:
+			return self.safe_fonts["sans-serif"]
+		if self.system_fonts:
+			return next(iter(self.system_fonts)) #Take an arbitrary font that is available. Running out of options, here!
+		return "Noto Sans" #Default font of Cura. Hopefully that gets installed somewhere.
 
 	def convert_points(self, points) -> typing.Generator[typing.Tuple[float, float], None, None]:
 		"""
