@@ -163,7 +163,7 @@ class Parser:
 		elif unit == "vmax":
 			return number / 100 * max(self.machine_width, self.machine_depth)
 
-		else: #Assume mm.
+		else: #Assume viewport-units.
 			return number
 		#TODO: Implement font-relative sizes.
 
@@ -806,12 +806,12 @@ class Parser:
 		:param element: The Circle element.
 		:return: A sequence of commands necessary to print this element.
 		"""
-		cx = self.convert_float(element.attrib, "cx", 0)
-		cy = self.convert_float(element.attrib, "cy", 0)
-		r = self.convert_float(element.attrib, "r", 0)
+		cx = self.convert_length(element.attrib.get("cx", "0"))
+		cy = self.convert_length(element.attrib.get("cy", "0"))
+		r = self.convert_length(element.attrib.get("r", "0"))
 		if r == 0:
 			return #Circles without radius don't exist here.
-		line_width = self.convert_float(element.attrib, "stroke-width", 0)
+		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
 
 		tx, ty = self.apply_transformation(cx + r, cy, transformation)
@@ -827,15 +827,15 @@ class Parser:
 		:param element: The Ellipse element.
 		:return: A sequence of commands necessary to print this element.
 		"""
-		cx = self.convert_float(element.attrib, "cx", 0)
-		cy = self.convert_float(element.attrib, "cy", 0)
-		rx = self.convert_float(element.attrib, "rx", 0)
+		cx = self.convert_length(element.attrib.get("cx", "0"))
+		cy = self.convert_length(element.attrib.get("cy", "0"))
+		rx = self.convert_length(element.attrib.get("rx", "0"))
 		if rx == 0:
 			return #Ellipses without radius don't exist here.
-		ry = self.convert_float(element.attrib, "ry", 0)
+		ry = self.convert_length(element.attrib.get("ry", "0"))
 		if ry == 0:
 			return
-		line_width = self.convert_float(element.attrib, "stroke-width", 0)
+		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
 
 		tx, ty = self.apply_transformation(cx + rx, cy, transformation)
@@ -864,12 +864,12 @@ class Parser:
 		:param element: The Line element.
 		:return: A sequence of commands necessary to print this element.
 		"""
-		line_width = self.convert_float(element.attrib, "stroke-width", 0)
+		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
-		x1 = self.convert_float(element.attrib, "x1", 0)
-		y1 = self.convert_float(element.attrib, "y1", 0)
-		x2 = self.convert_float(element.attrib, "x2", 0)
-		y2 = self.convert_float(element.attrib, "y2", 0)
+		x1 = self.convert_length(element.attrib.get("x1", "0"))
+		y1 = self.convert_length(element.attrib.get("y1", "0"))
+		x2 = self.convert_length(element.attrib.get("x2", "0"))
+		y2 = self.convert_length(element.attrib.get("y2", "0"))
 
 		x1, y1 = self.apply_transformation(x1, y1, transformation)
 		x2, y2 = self.apply_transformation(x2, y2, transformation)
@@ -885,7 +885,7 @@ class Parser:
 		:param element: The Path element.
 		:return: A sequence of commands necessary to print this element.
 		"""
-		line_width = self.convert_float(element.attrib, "stroke-width", 0)
+		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
 		d = element.attrib.get("d", "")
 		x = 0 #Starting position.
@@ -1127,7 +1127,7 @@ class Parser:
 		:param element: The Polygon element.
 		:return: A sequence of commands necessary to print this element.
 		"""
-		line_width = self.convert_float(element.attrib, "stroke-width", 0)
+		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
 
 		first_x = None #Save these in order to get back to the starting coordinates. And to use a travel command.
@@ -1152,7 +1152,7 @@ class Parser:
 		:param element: The Polyline element.
 		:return: A sequence of commands necessary to print this element.
 		"""
-		line_width = self.convert_float(element.attrib, "stroke-width", 0)
+		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
 
 		is_first = True #We must use a travel command for the first coordinate pair.
@@ -1170,13 +1170,13 @@ class Parser:
 		:param element: The Rect element.
 		:return: A sequence of commands necessary to print this element.
 		"""
-		x = self.convert_float(element.attrib, "x", 0)
-		y = self.convert_float(element.attrib, "y", 0)
-		rx = self.convert_float(element.attrib, "rx", 0)
-		ry = self.convert_float(element.attrib, "ry", 0)
-		width = self.convert_float(element.attrib, "width", 0)
-		height = self.convert_float(element.attrib, "height", 0)
-		line_width = self.convert_float(element.attrib, "stroke-width", 0)
+		x = self.convert_length(element.attrib.get("x", "0"))
+		y = self.convert_length(element.attrib.get("y", "0"))
+		rx = self.convert_length(element.attrib.get("rx", "0"))
+		ry = self.convert_length(element.attrib.get("ry", "0"))
+		width = self.convert_length(element.attrib.get("width", "0"))
+		height = self.convert_length(element.attrib.get("height", "0"))
+		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
 
 		if width == 0 or height == 0:
@@ -1246,14 +1246,14 @@ class Parser:
 		:param element: The Text element.
 		:return: A sequence of commands necessary to write the text.
 		"""
-		x = self.convert_float(element.attrib, "x", 0)
-		y = self.convert_float(element.attrib, "y", 0)
-		dx = self.convert_float(element.attrib, "dx", 0)
-		dy = self.convert_float(element.attrib, "dy", 0)
+		x = self.convert_length(element.attrib.get("x", "0"))
+		y = self.convert_length(element.attrib.get("y", "0"))
+		dx = self.convert_length(element.attrib.get("dx", "0"))
+		dy = self.convert_length(element.attrib.get("dy", "0"))
 		rotate = self.convert_float(element.attrib, "rotate", 0)
 		length_adjust = element.attrib.get("lengthAdjust", "spacing")
-		text_length = self.convert_float(element.attrib, "textLength", 0) #TODO: Support percentages.
-		line_width = self.convert_float(element.attrib, "stroke-width", 0)
+		text_length = self.convert_length(element.attrib.get("textLength", "0"))
+		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
 		self.detect_fonts_thread.join(timeout=10) #If this times out, the list of fonts will be incomplete so we might select the wrong font. Oh well.
 		font_name = self.convert_font_family(element.attrib.get("font-family", "sans-serif").lower())
