@@ -1162,8 +1162,8 @@ class Parser:
 
 				current_curve = [] #Between every on-curve point we'll draw a curve. These are the cubic handles of the curve.
 				for point_index in range(1, len(points)):
-					current_curve.append(points[point_index])
-					if tags[point_index] & 0b1: #First bit is unset, so this point is on the curve and finishes the segment.
+					if tags[point_index] & 0b1: #First bit is set, so this point is on the curve and finishes the segment.
+						current_curve.append(points[point_index])
 						#Actually extrude the curve.
 						while len(current_curve) > 0:
 							if len(current_curve) == 1: #Just enough left for a straight line, whatever the flags of the last point are.
@@ -1200,7 +1200,19 @@ class Parser:
 								current_y = end_y
 								current_curve = current_curve[2:]
 						continue
-					if tags[point_index] & 0b10 == 0: #If second bit is unset, this is a quadratic curve which we can render as cubic curve by putting it in twice.
+					if tags[point_index] & 0b10 or point_index >= len(points) - 1: #If the second bit is set, this is a cubic curve control point. If it's the last point, convert to normal linear point.
 						current_curve.append(points[point_index])
+					else: #If second bit is unset, this is a quadratic curve which we can convert to a cubic curve.
+						control = points[point_index]
+						if tags[point_index + 1] & 0b1:
+							next_point = points[point_index + 1]
+						else:
+							next_point = ((control[0] + points[point_index + 1][0]) / 2, (control[1] + points[point_index + 1][1]) / 2)
+						if tags[point_index - 1] & 0b1:
+							previous_point = points[point_index - 1]
+						else:
+							previous_point = ((control[0] + points[point_index - 1][0]) / 2, (control[1] + points[point_index - 1][1]) / 2)
+						current_curve.append((previous_point[0] + 2.0 / 3.0 * (control[0] - previous_point[0]), previous_point[1] + 2.0 / 3.0 * (control[1] - previous_point[1]))) #2/3 towards the one control point.
+						current_curve.append((next_point[0] + 2.0 / 3.0 * (control[0] - next_point[0]), next_point[1] + 2.0 / 3.0 * (control[1] - next_point[1])))
 
 				start = end + 1
