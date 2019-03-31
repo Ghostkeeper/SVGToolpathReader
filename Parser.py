@@ -1251,7 +1251,7 @@ class Parser:
 		text_length = self.convert_float(element.attrib, "textLength", 0) #TODO: Support percentages.
 		line_width = self.convert_float(element.attrib, "stroke-width", 0)
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
-		self.detect_fonts_thread.join(timeout=10)
+		self.detect_fonts_thread.join(timeout=10) #If this times out, the list of fonts will be incomplete so we might select the wrong font. Oh well.
 		font_name = self.convert_font_family(element.attrib.get("font-family", "sans-serif").lower())
 		font_size = self.convert_dimension(element.attrib.get("font-size", "12pt"))
 		text = element.text
