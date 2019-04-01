@@ -126,12 +126,15 @@ class Parser:
 
 		return result
 
-	def convert_length(self, dimension, parent_size=None) -> float:
+	def convert_length(self, dimension, vertical=False, parent_size=None) -> float:
 		"""
 		Converts a CSS dimension to millimetres.
 
 		For pixels, this assumes a resolution of 96 dots per inch.
 		:param dimension: A CSS dimension.
+		:param vertical: The dimension is a vertical one, so it should be taken
+		relative to other vertical dimensions for some units, such as the
+		vertical size of the parent if using percentages.
 		:param parent_size: The size in millimetres of the element that contains
 		the element that we're getting the dimension for. If ``None``, this will
 		be set to the printer's width.
@@ -163,7 +166,10 @@ class Parser:
 
 		elif unit == "%":
 			if parent_size is None:
-				parent_size = self.image_w
+				if vertical:
+					parent_size = self.image_h
+				else:
+					parent_size = self.image_w
 			return number / 100 * parent_size
 		elif unit == "vh" or unit == "vb":
 			return number / 100 * self.image_w
@@ -175,7 +181,10 @@ class Parser:
 			return number / 100 * max(self.image_w, self.image_h)
 
 		else: #Assume viewport-units.
-			return number * self.unit_w
+			if vertical:
+				return number * self.unit_h
+			else:
+				return number * self.unit_w
 		#TODO: Implement font-relative sizes.
 
 	def convert_float(self, dictionary, attribute, default: float) -> float:
@@ -822,7 +831,7 @@ class Parser:
 		:return: A sequence of commands necessary to print this element.
 		"""
 		cx = self.convert_length(element.attrib.get("cx", "0"))
-		cy = self.convert_length(element.attrib.get("cy", "0"))
+		cy = self.convert_length(element.attrib.get("cy", "0"), vertical=True)
 		r = self.convert_length(element.attrib.get("r", "0"))
 		if r == 0:
 			return #Circles without radius don't exist here.
@@ -843,11 +852,11 @@ class Parser:
 		:return: A sequence of commands necessary to print this element.
 		"""
 		cx = self.convert_length(element.attrib.get("cx", "0"))
-		cy = self.convert_length(element.attrib.get("cy", "0"))
+		cy = self.convert_length(element.attrib.get("cy", "0"), vertical=True)
 		rx = self.convert_length(element.attrib.get("rx", "0"))
 		if rx == 0:
 			return #Ellipses without radius don't exist here.
-		ry = self.convert_length(element.attrib.get("ry", "0"))
+		ry = self.convert_length(element.attrib.get("ry", "0"), vertical=True)
 		if ry == 0:
 			return
 		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
@@ -882,9 +891,9 @@ class Parser:
 		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
 		x1 = self.convert_length(element.attrib.get("x1", "0"))
-		y1 = self.convert_length(element.attrib.get("y1", "0"))
+		y1 = self.convert_length(element.attrib.get("y1", "0"), vertical=True)
 		x2 = self.convert_length(element.attrib.get("x2", "0"))
-		y2 = self.convert_length(element.attrib.get("y2", "0"))
+		y2 = self.convert_length(element.attrib.get("y2", "0"), vertical=True)
 
 		x1, y1 = self.apply_transformation(x1, y1, transformation)
 		x2, y2 = self.apply_transformation(x2, y2, transformation)
@@ -1186,11 +1195,11 @@ class Parser:
 		:return: A sequence of commands necessary to print this element.
 		"""
 		x = self.convert_length(element.attrib.get("x", "0"))
-		y = self.convert_length(element.attrib.get("y", "0"))
+		y = self.convert_length(element.attrib.get("y", "0"), vertical=True)
 		rx = self.convert_length(element.attrib.get("rx", "0"))
-		ry = self.convert_length(element.attrib.get("ry", "0"))
+		ry = self.convert_length(element.attrib.get("ry", "0"), vertical=True)
 		width = self.convert_length(element.attrib.get("width", "0"))
-		height = self.convert_length(element.attrib.get("height", "0"))
+		height = self.convert_length(element.attrib.get("height", "0"), vertical=True)
 		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
 
@@ -1231,7 +1240,7 @@ class Parser:
 				except ValueError: #Not valid floats.
 					pass
 		self.image_w = self.convert_length(element.attrib.get("width", "100%"))
-		self.image_h = self.convert_length(element.attrib.get("height", "100%"))
+		self.image_h = self.convert_length(element.attrib.get("height", "100%"), vertical=True)
 		self.unit_w = self.image_w / self.viewport_w
 		self.unit_h = self.image_h / self.viewport_h
 
@@ -1277,9 +1286,9 @@ class Parser:
 		:return: A sequence of commands necessary to write the text.
 		"""
 		x = self.convert_length(element.attrib.get("x", "0"))
-		y = self.convert_length(element.attrib.get("y", "0"))
+		y = self.convert_length(element.attrib.get("y", "0"), vertical=True)
 		dx = self.convert_length(element.attrib.get("dx", "0"))
-		dy = self.convert_length(element.attrib.get("dy", "0"))
+		dy = self.convert_length(element.attrib.get("dy", "0"), vertical=True)
 		rotate = self.convert_float(element.attrib, "rotate", 0)
 		length_adjust = element.attrib.get("lengthAdjust", "spacing")
 		text_length = self.convert_length(element.attrib.get("textLength", "0"))
