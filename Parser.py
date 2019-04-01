@@ -51,6 +51,8 @@ class Parser:
 		self.viewport_h = self.machine_depth
 		self.image_w = self.machine_width
 		self.image_h = self.machine_depth
+		self.unit_w = self.image_w / self.viewport_w
+		self.unit_h = self.image_h / self.viewport_h
 
 		self.system_fonts = {} #type: typing.Dict[str, typing.List[freetype.Face]] #Mapping from family name to list of font faces.
 		self.detect_fonts_thread = threading.Thread(target=self.find_system_fonts)
@@ -173,7 +175,7 @@ class Parser:
 			return number / 100 * max(self.image_w, self.image_h)
 
 		else: #Assume viewport-units.
-			return number
+			return number * self.unit_w
 		#TODO: Implement font-relative sizes.
 
 	def convert_float(self, dictionary, attribute, default: float) -> float:
@@ -1230,6 +1232,8 @@ class Parser:
 					pass
 		self.image_w = self.convert_length(element.attrib.get("width", "100%"))
 		self.image_h = self.convert_length(element.attrib.get("height", "100%"))
+		self.unit_w = self.image_w / self.viewport_w
+		self.unit_h = self.image_h / self.viewport_h
 
 		for child in element:
 			yield from self.parse(child)
