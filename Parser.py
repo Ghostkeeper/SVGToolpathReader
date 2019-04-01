@@ -161,16 +161,16 @@ class Parser:
 
 		elif unit == "%":
 			if parent_size is None:
-				parent_size = self.machine_width
+				parent_size = self.image_w
 			return number / 100 * parent_size
 		elif unit == "vh" or unit == "vb":
-			return number / 100 * self.machine_depth
+			return number / 100 * self.image_w
 		elif unit == "vw" or unit == "vi":
-			return number / 100 * self.machine_width
+			return number / 100 * self.image_h
 		elif unit == "vmin":
-			return number / 100 * min(self.machine_width, self.machine_depth)
+			return number / 100 * min(self.image_w, self.image_h)
 		elif unit == "vmax":
-			return number / 100 * max(self.machine_width, self.machine_depth)
+			return number / 100 * max(self.image_w, self.image_h)
 
 		else: #Assume viewport-units.
 			return number
