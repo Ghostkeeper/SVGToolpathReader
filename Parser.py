@@ -1291,8 +1291,8 @@ class Parser:
 		"""
 		x = self.convert_length(element.attrib.get("x", "0"))
 		y = self.convert_length(element.attrib.get("y", "0"), vertical=True)
-		dx = self.convert_length(element.attrib.get("dx", "0"))
-		dy = self.convert_length(element.attrib.get("dy", "0"), vertical=True)
+		x += self.convert_length(element.attrib.get("dx", "0"))
+		y += self.convert_length(element.attrib.get("dy", "0"), vertical=True)
 		rotate = self.convert_float(element.attrib, "rotate", 0)
 		length_adjust = element.attrib.get("lengthAdjust", "spacing")
 		text_length = self.convert_length(element.attrib.get("textLength", "0"))
