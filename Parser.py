@@ -1316,7 +1316,7 @@ class Parser:
 				points = outline.points[start:end + 1]
 				points.append(points[0]) #Close the polygon.
 				for point_idx in range(len(points)): #Convert coordinates to mm.
-					points[point_idx] = (points[point_idx][0] / 64.0 / 96.0 * 25.4, points[point_idx][1] / 64.0 / 96.0 * 25.4)
+					points[point_idx] = (points[point_idx][0] / 64.0 / 96.0 * 25.4, -points[point_idx][1] / 64.0 / 96.0 * 25.4)
 				tags = outline.tags[start:end + 1]
 				tags.append(tags[0])
 
