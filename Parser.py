@@ -218,8 +218,8 @@ class Parser:
 				font = self.safe_fonts[font]
 			if font in self.system_fonts:
 				return font
-		if self.safe_fonts["sans-serif"] in self.system_fonts:
-			return self.safe_fonts["sans-serif"]
+		if self.safe_fonts["serif"] in self.system_fonts:
+			return self.safe_fonts["serif"]
 		if self.system_fonts:
 			return next(iter(self.system_fonts)) #Take an arbitrary font that is available. Running out of options, here!
 		return "Noto Sans" #Default font of Cura. Hopefully that gets installed somewhere.
@@ -1299,7 +1299,7 @@ class Parser:
 		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
 		self.detect_fonts_thread.join(timeout=10) #If this times out, the list of fonts will be incomplete so we might select the wrong font. Oh well.
-		font_name = self.convert_font_family(element.attrib.get("font-family", "sans-serif").lower())
+		font_name = self.convert_font_family(element.attrib.get("font-family", "serif").lower())
 		font_size = self.convert_length(element.attrib.get("font-size", "12pt"))
 		text = element.text
 
