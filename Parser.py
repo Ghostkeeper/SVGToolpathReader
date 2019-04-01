@@ -1308,6 +1308,7 @@ class Parser:
 
 		char_x = 0 #Position of this character within the text element.
 		char_y = 0
+		previous_char = 0 #To get correct kerning.
 
 		for index, character in enumerate(text):
 			face.load_char(character)
@@ -1384,5 +1385,8 @@ class Parser:
 						current_curve.append((next_point[0] + 2.0 / 3.0 * (control[0] - next_point[0]), next_point[1] + 2.0 / 3.0 * (control[1] - next_point[1])))
 
 				start = end + 1
-			char_x += face.glyph.advance.x / 64.0 / 96.0 * 25.4
-			char_y -= face.glyph.advance.y / 64.0 / 96.0 * 25.4
+
+			kerning = face.get_kerning(previous_char, character)
+			char_x += (face.glyph.advance.x + kerning.x) / 64.0 / 96.0 * 25.4
+			char_y -= (face.glyph.advance.y + kerning.y) / 64.0 / 96.0 * 25.4
+			previous_char = character
