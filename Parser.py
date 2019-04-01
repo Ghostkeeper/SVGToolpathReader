@@ -937,8 +937,8 @@ class Parser:
 			if command_name == "M": #Move.
 				if len(parameters) < 2:
 					continue #Not enough parameters to the M command. Skip it.
-				x = parameters[0]
-				y = parameters[1]
+				x = parameters[0] * self.unit_w
+				y = parameters[1] * self.unit_h
 				tx, ty = self.apply_transformation(x, y, transformation)
 				yield TravelCommand.TravelCommand(x=tx, y=ty)
 				if len(parameters) >= 2:
@@ -949,8 +949,8 @@ class Parser:
 			if command_name == "m": #Move relatively.
 				if len(parameters) < 2:
 					continue #Not enough parameters to the m command. Skip it.
-				x += parameters[0]
-				y += parameters[1]
+				x += parameters[0] * self.unit_w
+				y += parameters[1] * self.unit_h
 				tx, ty = self.apply_transformation(x, y, transformation)
 				yield TravelCommand.TravelCommand(x=tx, y=ty)
 				if len(parameters) >= 2:
@@ -967,12 +967,12 @@ class Parser:
 					parameters[3] = parameters[3] != 0 #Convert to boolean.
 					parameters[4] = parameters[4] != 0
 					yield from self.extrude_arc(start_x=x, start_y=y,
-					                 rx=parameters[0], ry=parameters[1],
+					                 rx=parameters[0] * self.unit_w, ry=parameters[1] * self.unit_h,
 					                 rotation=parameters[2],
 					                 large_arc=parameters[3], sweep_flag=parameters[4],
-					                 end_x=parameters[5], end_y=parameters[6], line_width=line_width, transformation=transformation)
-					x = parameters[5]
-					y = parameters[6]
+					                 end_x=parameters[5] * self.unit_w, end_y=parameters[6] * self.unit_h, line_width=line_width, transformation=transformation)
+					x = parameters[5] * self.unit_w
+					y = parameters[6] * self.unit_h
 					parameters = parameters[7:]
 			elif command_name == "a": #Elliptical arc to relative position.
 				while len(parameters) >= 7:
@@ -982,114 +982,114 @@ class Parser:
 					parameters[3] = parameters[3] != 0 #Convert to boolean.
 					parameters[4] = parameters[4] != 0
 					yield from self.extrude_arc(start_x=x, start_y=y,
-					                 rx=parameters[0], ry=parameters[1],
+					                 rx=parameters[0] * self.unit_w, ry=parameters[1] * self.unit_h,
 					                 rotation=parameters[2],
 					                 large_arc=parameters[3], sweep_flag=parameters[4],
-					                 end_x=x + parameters[5], end_y=y + parameters[6], line_width=line_width, transformation=transformation)
-					x += parameters[5]
-					y += parameters[6]
+					                 end_x=x + parameters[5] * self.unit_w, end_y=y + parameters[6] * self.unit_h, line_width=line_width, transformation=transformation)
+					x += parameters[5] * self.unit_w
+					y += parameters[6] * self.unit_h
 					parameters = parameters[7:]
 			elif command_name == "C": #Cubic curve (Bézier).
 				while len(parameters) >= 6:
-					previous_cubic_x = parameters[2]
-					previous_cubic_y = parameters[3]
+					previous_cubic_x = parameters[2] * self.unit_w
+					previous_cubic_y = parameters[3] * self.unit_h
 					yield from self.extrude_cubic(start_x=x, start_y=y,
-					                              handle1_x=parameters[0], handle1_y=parameters[1],
+					                              handle1_x=parameters[0] * self.unit_w, handle1_y=parameters[1] * self.unit_h,
 					                              handle2_x=previous_cubic_x, handle2_y=previous_cubic_y,
-					                              end_x=parameters[4], end_y=parameters[5],
+					                              end_x=parameters[4] * self.unit_w, end_y=parameters[5] * self.unit_h,
 					                              line_width=line_width, transformation=transformation)
-					x = parameters[4]
-					y = parameters[5]
+					x = parameters[4] * self.unit_w
+					y = parameters[5] * self.unit_h
 					parameters = parameters[6:]
 			elif command_name == "c": #Relative cubic curve (Bézier).
 				while len(parameters) >= 6:
-					previous_cubic_x = x + parameters[2]
-					previous_cubic_y = y + parameters[3]
+					previous_cubic_x = x + parameters[2] * self.unit_w
+					previous_cubic_y = y + parameters[3] * self.unit_h
 					yield from self.extrude_cubic(start_x=x, start_y=y,
-					                              handle1_x=x + parameters[0], handle1_y=y + parameters[1],
+					                              handle1_x=x + parameters[0] * self.unit_w, handle1_y=y + parameters[1] * self.unit_h,
 					                              handle2_x=previous_cubic_x, handle2_y=previous_cubic_y,
-					                              end_x=x + parameters[4], end_y=y + parameters[5],
+					                              end_x=x + parameters[4] * self.unit_w, end_y=y + parameters[5] * self.unit_h,
 					                              line_width=line_width, transformation=transformation)
-					x += parameters[4]
-					y += parameters[5]
+					x += parameters[4] * self.unit_w
+					y += parameters[5] * self.unit_h
 					parameters = parameters[6:]
 			elif command_name == "H": #Horizontal line.
 				while len(parameters) >= 1:
-					x = parameters[0]
+					x = parameters[0] * self.unit_w
 					tx, ty = self.apply_transformation(x, y, transformation)
 					yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
 					parameters = parameters[1:]
 			elif command_name == "h": #Relative horizontal line.
 				while len(parameters) >= 1:
-					x += parameters[0]
+					x += parameters[0] * self.unit_w
 					tx, ty = self.apply_transformation(x, y, transformation)
 					yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
 					parameters = parameters[1:]
 			elif command_name == "L": #Line.
 				while len(parameters) >= 2:
-					x = parameters[0]
-					y = parameters[1]
+					x = parameters[0] * self.unit_w
+					y = parameters[1] * self.unit_h
 					tx, ty = self.apply_transformation(x, y, transformation)
 					yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
 					parameters = parameters[2:]
 			elif command_name == "l": #Relative line.
 				while len(parameters) >= 2:
-					x += parameters[0]
-					y += parameters[1]
+					x += parameters[0] * self.unit_w
+					y += parameters[1] * self.unit_h
 					tx, ty = self.apply_transformation(x, y, transformation)
 					yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
 					parameters = parameters[2:]
 			elif command_name == "Q": #Quadratic curve.
 				while len(parameters) >= 4:
-					previous_quadratic_x = parameters[0]
-					previous_quadratic_y = parameters[1]
+					previous_quadratic_x = parameters[0] * self.unit_w
+					previous_quadratic_y = parameters[1] * self.unit_h
 					yield from self.extrude_quadratic(start_x=x, start_y=y,
 					                                  handle_x=previous_quadratic_x, handle_y=previous_quadratic_y,
-					                                  end_x=parameters[2], end_y=parameters[3],
+					                                  end_x=parameters[2] * self.unit_w, end_y=parameters[3] * self.unit_h,
 					                                  line_width=line_width, transformation=transformation)
-					x = parameters[2]
-					y = parameters[3]
+					x = parameters[2] * self.unit_w
+					y = parameters[3] * self.unit_h
 					parameters = parameters[4:]
 			elif command_name == "q": #Relative quadratic curve.
 				while len(parameters) >= 4:
-					previous_quadratic_x = x + parameters[0]
-					previous_quadratic_y = y + parameters[1]
+					previous_quadratic_x = x + parameters[0] * self.unit_w
+					previous_quadratic_y = y + parameters[1] * self.unit_h
 					yield from self.extrude_quadratic(start_x=x, start_y=y,
 					                                  handle_x=previous_quadratic_x, handle_y=previous_quadratic_y,
-					                                  end_x=x + parameters[2], end_y=y + parameters[3],
+					                                  end_x=x + parameters[2] * self.unit_w, end_y=y + parameters[3] * self.unit_h,
 					                                  line_width=line_width, transformation=transformation)
-					x += parameters[2]
-					y += parameters[3]
+					x += parameters[2] * self.unit_w
+					y += parameters[3] * self.unit_h
 					parameters = parameters[4:]
 			elif command_name == "S": #Smooth cubic curve (Bézier).
 				while len(parameters) >= 4:
 					#Mirror the handle around the current position.
 					handle1_x = x + (x - previous_cubic_x)
 					handle1_y = y + (y - previous_cubic_y)
-					previous_cubic_x = parameters[0] #For the next curve, store the coordinates of the second handle.
-					previous_cubic_y = parameters[1]
+					previous_cubic_x = parameters[0] * self.unit_w #For the next curve, store the coordinates of the second handle.
+					previous_cubic_y = parameters[1] * self.unit_h
 					yield from self.extrude_cubic(start_x=x, start_y=y,
 					                              handle1_x=handle1_x, handle1_y=handle1_y,
 					                              handle2_x=previous_cubic_x, handle2_y=previous_cubic_y,
-					                              end_x=parameters[2], end_y=parameters[3],
+					                              end_x=parameters[2] * self.unit_w, end_y=parameters[3] * self.unit_h,
 					                              line_width=line_width, transformation=transformation)
-					x = parameters[2]
-					y = parameters[3]
+					x = parameters[2] * self.unit_w
+					y = parameters[3] * self.unit_h
 					parameters = parameters[4:]
 			elif command_name == "s": #Relative smooth cubic curve (Bézier).
 				while len(parameters) >= 4:
 					#Mirror the handle around the current position.
 					handle1_x = x + (x - previous_cubic_x)
 					handle1_y = y + (y - previous_cubic_y)
-					previous_cubic_x = x + parameters[0] #For the next curve, store the coordinates of the second handle.
-					previous_cubic_y = y + parameters[1]
+					previous_cubic_x = x + parameters[0] * self.unit_w #For the next curve, store the coordinates of the second handle.
+					previous_cubic_y = y + parameters[1] * self.unit_h
 					yield from self.extrude_cubic(start_x=x, start_y=y,
 					                              handle1_x=handle1_x, handle1_y=handle1_y,
 					                              handle2_x=previous_cubic_x, handle2_y=previous_cubic_y,
-					                              end_x=x + parameters[2], end_y=y + parameters[3],
+					                              end_x=x + parameters[2] * self.unit_w, end_y=y + parameters[3] * self.unit_h,
 					                              line_width=line_width, transformation=transformation)
-					x += parameters[2]
-					y += parameters[3]
+					x += parameters[2] * self.unit_w
+					y += parameters[3] * self.unit_h
 					parameters = parameters[4:]
 			elif command_name == "T": #Smooth quadratic curve.
 				while len(parameters) >= 2:
@@ -1098,10 +1098,10 @@ class Parser:
 					previous_quadratic_y = y + (y - previous_quadratic_y)
 					yield from self.extrude_quadratic(start_x=x, start_y=y,
 					                                  handle_x=previous_quadratic_x, handle_y=previous_quadratic_y,
-					                                  end_x=parameters[0], end_y=parameters[1],
+					                                  end_x=parameters[0] * self.unit_w, end_y=parameters[1] * self.unit_h,
 					                                  line_width=line_width, transformation=transformation)
-					x = parameters[0]
-					y = parameters[1]
+					x = parameters[0] * self.unit_w
+					y = parameters[1] * self.unit_h
 					parameters = parameters[2:]
 			elif command_name == "t": #Relative smooth quadratic curve.
 				while len(parameters) >= 2:
@@ -1110,20 +1110,20 @@ class Parser:
 					previous_quadratic_y = y + (y - previous_quadratic_y)
 					yield from self.extrude_quadratic(start_x=x, start_y=y,
 					                                  handle_x=previous_quadratic_x, handle_y=previous_quadratic_y,
-					                                  end_x=x + parameters[0], end_y=y + parameters[1],
+					                                  end_x=x + parameters[0] * self.unit_w, end_y=y + parameters[1] * self.unit_h,
 					                                  line_width=line_width, transformation=transformation)
-					x += parameters[0]
-					y += parameters[1]
+					x += parameters[0] * self.unit_w
+					y += parameters[1] * self.unit_h
 					parameters = parameters[2:]
 			elif command_name == "V": #Vertical line.
 				while len(parameters) >= 1:
-					y = parameters[0]
+					y = parameters[0] * self.unit_h
 					tx, ty = self.apply_transformation(x, y, transformation)
 					yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
 					parameters = parameters[1:]
 			elif command_name == "v": #Relative vertical line.
 				while len(parameters) >= 1:
-					y += parameters[0]
+					y += parameters[0] * self.unit_h
 					tx, ty = self.apply_transformation(x, y, transformation)
 					yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
 					parameters = parameters[1:]
@@ -1157,6 +1157,8 @@ class Parser:
 		first_x = None #Save these in order to get back to the starting coordinates. And to use a travel command.
 		first_y = None
 		for x, y in self.convert_points(element.attrib.get("points", "")):
+			x *= self.unit_w
+			y *= self.unit_h
 			x, y = self.apply_transformation(x, y, transformation)
 			if first_x is None or first_y is None:
 				first_x = x
@@ -1181,6 +1183,8 @@ class Parser:
 
 		is_first = True #We must use a travel command for the first coordinate pair.
 		for x, y in self.convert_points(element.attrib.get("points", "")):
+			x *= self.unit_w
+			y *= self.unit_h
 			x, y = self.apply_transformation(x, y, transformation)
 			if is_first:
 				yield TravelCommand.TravelCommand(x=x, y=y)
