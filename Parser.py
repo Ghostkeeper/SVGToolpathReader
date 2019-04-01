@@ -753,9 +753,13 @@ class Parser:
 			del element.attrib["style"]
 
 		#Put all CSS attributes in the attrib dict, even if they are not normally available in SVG. It'll be easier to parse there if we keep it separated.
-		tracked_css = {"stroke-width", "transform"}
-		for attribute in css:
-			element.attrib[attribute] = css[attribute]
+		tracked_css = { #For each property, also their defaults.
+			"stroke-width": "0.35mm",
+			"transform": "",
+			"font-size": "12pt"
+		}
+		for attribute in tracked_css:
+			element.attrib[attribute] = css.get(attribute, tracked_css[attribute])
 
 		#Pass CSS on to children.
 		for child in element:
