@@ -1305,6 +1305,10 @@ class Parser:
 
 		face = self.system_fonts[font_name][0] #TODO: Select correct variant from family of fonts.
 		face.set_char_size(int(round(font_size / 25.4 * 72 * 64)))
+
+		char_x = 0 #Position of this character within the text element.
+		char_y = 0
+
 		for index, character in enumerate(text):
 			face.load_char(character)
 			outline = face.glyph.outline
@@ -1321,7 +1325,7 @@ class Parser:
 				tags.append(tags[0])
 
 				current_x, current_y = points[0][0], points[0][1]
-				current_tx, current_ty = self.apply_transformation(x + current_x, y + current_y, transformation)
+				current_tx, current_ty = self.apply_transformation(x + char_x + current_x, y + char_y + current_y, transformation)
 				yield TravelCommand.TravelCommand(current_tx, current_ty) #Move to first segment.
 
 				current_curve = [] #Between every on-curve point we'll draw a curve. These are the cubic handles of the curve.
@@ -1332,22 +1336,22 @@ class Parser:
 						while len(current_curve) > 0:
 							if len(current_curve) == 1: #Just enough left for a straight line, whatever the flags of the last point are.
 								current_x, current_y = current_curve[0]
-								current_tx, current_ty = self.apply_transformation(x + current_x, y + current_y, transformation)
+								current_tx, current_ty = self.apply_transformation(x + char_x + current_x, y + char_y + current_y, transformation)
 								yield ExtrudeCommand.ExtrudeCommand(current_tx, current_ty, line_width)
 								current_curve = []
 							elif len(current_curve) == 2: #Just enough left for a quadratic curve, even though the curve specified cubic. Shouldn't happen if the font was correctly formed.
-								yield from self.extrude_quadratic(x + current_x, y + current_y,
-								                                  x + current_curve[0][0], y + current_curve[0][1],
-								                                  x + current_curve[1][0], y + current_curve[1][1],
+								yield from self.extrude_quadratic(x + char_x + current_x, y + char_y + current_y,
+								                                  x + char_x + current_curve[0][0], y + char_y + current_curve[0][1],
+								                                  x + char_x + current_curve[1][0], y + char_y + current_curve[1][1],
 								                                  line_width, transformation)
 								current_x = current_curve[1][0]
 								current_y = current_curve[1][1]
 								current_curve = []
 							elif len(current_curve) == 3: #Just enough left for a single cubic curve.
-								yield from self.extrude_cubic(x + current_x, y + current_y,
-								                              x + current_curve[0][0], y + current_curve[0][1],
-								                              x + current_curve[1][0], y + current_curve[1][1],
-								                              x + current_curve[2][0], y + current_curve[2][1],
+								yield from self.extrude_cubic(x + char_x + current_x, y + char_y + current_y,
+								                              x + char_x + current_curve[0][0], y + char_y + current_curve[0][1],
+								                              x + char_x + current_curve[1][0], y + char_y + current_curve[1][1],
+								                              x + char_x + current_curve[2][0], y + char_y + current_curve[2][1],
 								                              line_width, transformation)
 								current_x = current_curve[2][0]
 								current_y = current_curve[2][1]
@@ -1355,10 +1359,10 @@ class Parser:
 							else: #Multiple curves with implied midway points.
 								end_x = (current_curve[1][0] + current_curve[2][0]) / 2
 								end_y = (current_curve[1][1] + current_curve[2][1]) / 2
-								yield from self.extrude_cubic(x + current_x, y + current_y,
-								                              x + current_curve[0][0], y + current_curve[0][1],
-								                              x + current_curve[1][0], y + current_curve[1][1],
-								                              x + end_x, y + end_y,
+								yield from self.extrude_cubic(x + char_x + current_x, y + char_y + current_y,
+								                              x + char_x + current_curve[0][0], y + char_y + current_curve[0][1],
+								                              x + char_x + current_curve[1][0], y + char_y + current_curve[1][1],
+								                              x + char_x + end_x, y + char_y + end_y,
 								                              line_width, transformation)
 								current_x = end_x
 								current_y = end_y
@@ -1380,3 +1384,5 @@ class Parser:
 						current_curve.append((next_point[0] + 2.0 / 3.0 * (control[0] - next_point[0]), next_point[1] + 2.0 / 3.0 * (control[1] - next_point[1])))
 
 				start = end + 1
+			char_x += face.glyph.advance.x / 64.0 / 96.0 * 25.4
+			char_y -= face.glyph.advance.y / 64.0 / 96.0 * 25.4
