@@ -56,7 +56,7 @@ This plug-in will use the current settings in your currently activated extruder 
 SVG Support
 -----------
 Not all elements of the SVG specification will be printed. For some things, this is intended. For instance, all fills, gradients, glow effects, etc. should not be printed. For other things they may just not be supported yet. The following elements are currently supported:
-* SVG
+* SVG (viewBox, width, height)
 * rect (x, y, width, height, rx, ry)
 * circle (cx, cy, r)
 * g
