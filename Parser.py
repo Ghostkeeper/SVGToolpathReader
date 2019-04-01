@@ -45,6 +45,13 @@ class Parser:
 		self.machine_width = extruder_stack.getProperty("machine_width", "value")
 		self.machine_depth = extruder_stack.getProperty("machine_depth", "value")
 
+		self.viewport_x = 0
+		self.viewport_y = 0
+		self.viewport_w = self.machine_width
+		self.viewport_h = self.machine_depth
+		self.image_w = self.machine_width
+		self.image_h = self.machine_depth
+
 		self.system_fonts = {} #type: typing.Dict[str, typing.List[freetype.Face]] #Mapping from family name to list of font faces.
 		self.detect_fonts_thread = threading.Thread(target=self.find_system_fonts)
 		self.detect_fonts_thread.start()
@@ -130,10 +137,12 @@ class Parser:
 		"""
 		number = re.match(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", dimension)
 		if not number:
+			UM.Logger.Logger.log("d", "NOT A NUMBER!")
 			return 0
 		number = number.group(0)
 		unit = dimension[len(number):].strip().lower()
 		number = float(number)
+		UM.Logger.Logger.log("d", "This was the number: " + str(number))
 
 		if unit == "mm":
 			return number
@@ -1205,6 +1214,19 @@ class Parser:
 		:param element: The SVG element.
 		:return: A sequence of commands necessary to print this element.
 		"""
+		if "viewBox" in element.attrib:
+			parts = element.attrib["viewBox"].split()
+			if len(parts) == 4:
+				try:
+					self.viewport_x = float(parts[0])
+					self.viewport_y = float(parts[1])
+					self.viewport_w = float(parts[2])
+					self.viewport_h = float(parts[3])
+				except ValueError: #Not valid floats.
+					pass
+		self.image_w = self.convert_length(element.attrib.get("width", "100%"))
+		self.image_h = self.convert_length(element.attrib.get("height", "100%"))
+
 		for child in element:
 			yield from self.parse(child)
 
