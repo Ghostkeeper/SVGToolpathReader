@@ -142,12 +142,10 @@ class Parser:
 		"""
 		number = re.match(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", dimension)
 		if not number:
-			UM.Logger.Logger.log("d", "NOT A NUMBER!")
 			return 0
 		number = number.group(0)
 		unit = dimension[len(number):].strip().lower()
 		number = float(number)
-		UM.Logger.Logger.log("d", "This was the number: " + str(number))
 
 		if unit == "mm":
 			return number
