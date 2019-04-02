@@ -54,7 +54,7 @@ class Parser:
 		self.unit_w = self.image_w / self.viewport_w
 		self.unit_h = self.image_h / self.viewport_h
 
-		self.system_fonts = {} #type: typing.Dict[str, typing.List[freetype.Face]] #Mapping from family name to list of font faces.
+		self.system_fonts = {} #type: typing.Dict[str, typing.List[str]] #Mapping from family name to list of file names.
 		self.detect_fonts_thread = threading.Thread(target=self.find_system_fonts)
 		self.detect_fonts_thread.start()
 		if UM.Platform.Platform.isWindows():
@@ -725,7 +725,7 @@ class Parser:
 						continue
 					if family_name not in self.system_fonts:
 						self.system_fonts[family_name] = []
-					self.system_fonts[family_name].append(face)
+					self.system_fonts[family_name].append(filename)
 
 		UM.Logger.Logger.log("d", "Completed scan for system fonts.")
 
@@ -1303,7 +1303,7 @@ class Parser:
 		font_size = self.convert_length(element.attrib.get("font-size", "12pt"))
 		text = " ".join(element.text.split())
 
-		face = self.system_fonts[font_name][0] #TODO: Select correct variant from family of fonts.
+		face = freetype.Face(self.system_fonts[font_name][0]) #TODO: Select correct variant from family of fonts.
 		face.set_char_size(int(round(font_size / 25.4 * 72 * 64)))
 
 		char_x = 0 #Position of this character within the text element.
