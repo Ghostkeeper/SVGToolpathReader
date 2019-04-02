@@ -213,6 +213,8 @@ class Parser:
 		fonts = font_family.split(",")
 		fonts = [font.strip() for font in fonts]
 
+		self.detect_fonts_thread.join() #All fonts need to be in at this point.
+
 		for font in fonts:
 			if font in self.safe_fonts:
 				font = self.safe_fonts[font]
@@ -1298,7 +1300,6 @@ class Parser:
 		text_length = self.convert_length(element.attrib.get("textLength", "0"))
 		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
-		self.detect_fonts_thread.join()
 		font_name = self.convert_font_family(element.attrib.get("font-family", "serif").lower())
 		font_size = self.convert_length(element.attrib.get("font-size", "12pt"))
 		text = " ".join(element.text.split())
