@@ -220,6 +220,7 @@ class Parser:
 				font = self.safe_fonts[font]
 			if font in self.system_fonts:
 				return font
+		UM.Logger.Logger.log("w", "Desired fonts not available on the system: {family}".format(family=font_family))
 		if self.safe_fonts["serif"] in self.system_fonts:
 			return self.safe_fonts["serif"]
 		if self.system_fonts:
