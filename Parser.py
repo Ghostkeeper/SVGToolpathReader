@@ -1301,7 +1301,7 @@ class Parser:
 		self.detect_fonts_thread.join()
 		font_name = self.convert_font_family(element.attrib.get("font-family", "serif").lower())
 		font_size = self.convert_length(element.attrib.get("font-size", "12pt"))
-		text = element.text
+		text = " ".join(element.text.split())
 
 		face = self.system_fonts[font_name][0] #TODO: Select correct variant from family of fonts.
 		face.set_char_size(int(round(font_size / 25.4 * 72 * 64)))
