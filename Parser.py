@@ -1304,7 +1304,7 @@ class Parser:
 		text = " ".join(element.text.split())
 
 		face = freetype.Face(self.system_fonts[font_name][0]) #TODO: Select correct variant from family of fonts.
-		face.set_char_size(int(round(font_size / 25.4 * 72 * 64)))
+		face.set_char_size(0, int(round(font_size / 25.4 * 72 * 64)), 362, 362) #This DPI of 362 seems to be the magic number to get the font size correct, but I don't know why.
 
 		char_x = 0 #Position of this character within the text element.
 		char_y = 0
