@@ -324,9 +324,10 @@ class Parser:
 					values.append(0)
 				if len(values) != 3:
 					continue #Invalid: Rotate needs 1 or 3 arguments.
-				transformation = numpy.matmul(transformation, numpy.array(((1, 0, -values[1]), (0, 1, -values[2]), (0, 0, 1))))
+				UM.Logger.Logger.log("d", "rotate values: " + str(values))
+				transformation = numpy.matmul(transformation, numpy.array(((1, 0, values[1]), (0, 1, values[2]), (0, 0, 1))))
 				transformation = numpy.matmul(transformation, numpy.array(((math.cos(values[0] / 180 * math.pi), -math.sin(values[0] / 180 * math.pi), 0), (math.sin(values[0] / 180 * math.pi), math.cos(values[0] / 180 * math.pi), 0), (0, 0, 1))))
-				transformation = numpy.matmul(transformation, numpy.array(((1, 0, values[1]), (0, 1, -values[2]), (0, 0, 1))))
+				transformation = numpy.matmul(transformation, numpy.array(((1, 0, -values[1]), (0, 1, -values[2]), (0, 0, 1))))
 			elif name == "skew":
 				if len(values) != 2:
 					continue #Invalid: Needs 2 arguments.
@@ -1311,6 +1312,8 @@ class Parser:
 		previous_char = 0 #To get correct kerning.
 
 		for index, character in enumerate(text):
+			per_character_transform = numpy.matmul(transformation, self.convert_transform("rotate({rotation}, {x}, {y})".format(rotation=rotate, x=x + char_x, y=y + char_y)))
+
 			face.load_char(character)
 			outline = face.glyph.outline
 			start = 0
@@ -1326,7 +1329,7 @@ class Parser:
 				tags.append(tags[0])
 
 				current_x, current_y = points[0][0], points[0][1]
-				current_tx, current_ty = self.apply_transformation(x + char_x + current_x, y + char_y + current_y, transformation)
+				current_tx, current_ty = self.apply_transformation(x + char_x + current_x, y + char_y + current_y, per_character_transform)
 				yield TravelCommand.TravelCommand(current_tx, current_ty) #Move to first segment.
 
 				current_curve = [] #Between every on-curve point we'll draw a curve. These are the cubic handles of the curve.
@@ -1337,14 +1340,14 @@ class Parser:
 						while len(current_curve) > 0:
 							if len(current_curve) == 1: #Just enough left for a straight line, whatever the flags of the last point are.
 								current_x, current_y = current_curve[0]
-								current_tx, current_ty = self.apply_transformation(x + char_x + current_x, y + char_y + current_y, transformation)
+								current_tx, current_ty = self.apply_transformation(x + char_x + current_x, y + char_y + current_y, per_character_transform)
 								yield ExtrudeCommand.ExtrudeCommand(current_tx, current_ty, line_width)
 								current_curve = []
 							elif len(current_curve) == 2: #Just enough left for a quadratic curve, even though the curve specified cubic. Shouldn't happen if the font was correctly formed.
 								yield from self.extrude_quadratic(x + char_x + current_x, y + char_y + current_y,
 								                                  x + char_x + current_curve[0][0], y + char_y + current_curve[0][1],
 								                                  x + char_x + current_curve[1][0], y + char_y + current_curve[1][1],
-								                                  line_width, transformation)
+								                                  line_width, per_character_transform)
 								current_x = current_curve[1][0]
 								current_y = current_curve[1][1]
 								current_curve = []
@@ -1353,7 +1356,7 @@ class Parser:
 								                              x + char_x + current_curve[0][0], y + char_y + current_curve[0][1],
 								                              x + char_x + current_curve[1][0], y + char_y + current_curve[1][1],
 								                              x + char_x + current_curve[2][0], y + char_y + current_curve[2][1],
-								                              line_width, transformation)
+								                              line_width, per_character_transform)
 								current_x = current_curve[2][0]
 								current_y = current_curve[2][1]
 								current_curve = []
@@ -1364,7 +1367,7 @@ class Parser:
 								                              x + char_x + current_curve[0][0], y + char_y + current_curve[0][1],
 								                              x + char_x + current_curve[1][0], y + char_y + current_curve[1][1],
 								                              x + char_x + end_x, y + char_y + end_y,
-								                              line_width, transformation)
+								                              line_width, per_character_transform)
 								current_x = end_x
 								current_y = end_y
 								current_curve = current_curve[2:]

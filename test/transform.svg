@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
-	<g transform="rotate(20)">
-		<path d="M0,20 H50 V0 L90,40 L50,80 V60 H0" transform="translate(20,0)" />
+	<g transform="rotate(20, 100, 100)">
+		<path d="M0,20 H50 V0 L90,40 L50,100 V60 H0" transform="translate(20,0)" />
 	</g>
 </svg>
