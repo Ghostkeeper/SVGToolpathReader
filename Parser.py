@@ -324,7 +324,6 @@ class Parser:
 					values.append(0)
 				if len(values) != 3:
 					continue #Invalid: Rotate needs 1 or 3 arguments.
-				UM.Logger.Logger.log("d", "rotate values: " + str(values))
 				transformation = numpy.matmul(transformation, numpy.array(((1, 0, values[1]), (0, 1, values[2]), (0, 0, 1))))
 				transformation = numpy.matmul(transformation, numpy.array(((math.cos(values[0] / 180 * math.pi), -math.sin(values[0] / 180 * math.pi), 0), (math.sin(values[0] / 180 * math.pi), math.cos(values[0] / 180 * math.pi), 0), (0, 0, 1))))
 				transformation = numpy.matmul(transformation, numpy.array(((1, 0, -values[1]), (0, 1, -values[2]), (0, 0, 1))))
