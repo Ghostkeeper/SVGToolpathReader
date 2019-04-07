@@ -69,11 +69,19 @@ Not all elements of the SVG specification will be printed. For some things, this
 * switch (requiredFeatures)
 * defs
 * use (x, y)
+* text (x, y, dx, dy, rotate)
 
 The following attributes are supported for each of these:
 * stroke-width
 * transform
 * style
+
+The following CSS properties are supported:
+* font-family
+* font-size
+* font-weight
+* font-style
+* text-transform
 
 Line Widths
 -----------
