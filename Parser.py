@@ -337,11 +337,11 @@ class Parser:
 			elif name == "skewx":
 				if len(values) != 1:
 					continue #Invalid: Needs 1 argument.
-				transformation = numpy.matmul(transformation, numpy.array(((1, math.tan(values[0] / 180 * math.pi), 0), (0, 1, 0), (1, 0, 0))))
+				transformation = numpy.matmul(transformation, numpy.array(((1, math.tan(values[0] / 180 * math.pi), 0), (0, 1, 0), (0, 0, 1))))
 			elif name == "skewy":
 				if len(values) != 1:
 					continue #Invalid: Needs 1 argument.
-				transformation = numpy.matmul(transformation, numpy.array(((1, 0, 0), (math.tan(values[0] / 180 * math.pi), 1, 0), (1, 0, 0))))
+				transformation = numpy.matmul(transformation, numpy.array(((1, 0, 0), (math.tan(values[0] / 180 * math.pi), 1, 0), (0, 0, 1))))
 			else:
 				continue #Invalid: Unrecognised transformation operation (or 3D).
 
@@ -1311,7 +1311,6 @@ class Parser:
 		character_stretch_x = 1
 
 		#Select the correct font based on italics and boldness.
-		UM.Logger.Logger.log("d", str(element.attrib))
 		font_style = element.attrib.get("font-style", "normal")
 		font_weight = self.convert_float(element.attrib, "font-weight", 400)
 		is_italic = font_style == "italic"
