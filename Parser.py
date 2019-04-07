@@ -29,7 +29,8 @@ spec = importlib.util.spec_from_file_location("freetype", freetype_path)
 freetype_module = importlib.util.module_from_spec(spec)
 sys.modules["freetype"] = freetype_module
 spec.loader.exec_module(freetype_module)
-import freetype
+import freetype #Load fonts.
+import freetype.ft_enums #Check font weights and italics.
 
 class Parser:
 	"""
@@ -110,7 +111,9 @@ class Parser:
 		attribute_validate = { #For each supported attribute, a predicate to validate whether it is correctly formed.
 			"stroke-width": is_float,
 			"transform": tautology,
-			"font-family": tautology
+			"font-family": tautology,
+			"font-weight": is_float,
+			"font-style": lambda s: s in {"normal", "italic", "oblique", "initial"} #Don't include "inherit" since we want it to inherit then as if not set.
 		}
 		result = {}
 
@@ -768,7 +771,9 @@ class Parser:
 		tracked_css = { #For each property, also their defaults.
 			"stroke-width": "0.35mm",
 			"transform": "",
-			"font-size": "12pt"
+			"font-size": "12pt",
+			"font-style": "normal",
+			"font-weight": "400"
 		}
 		for attribute in tracked_css:
 			element.attrib[attribute] = css.get(attribute, tracked_css[attribute])
@@ -1303,7 +1308,41 @@ class Parser:
 		font_size = self.convert_length(element.attrib.get("font-size", "12pt"))
 		text = " ".join(element.text.split())
 
-		face = freetype.Face(self.system_fonts[font_name][0]) #TODO: Select correct variant from family of fonts.
+		character_stretch_x = 1
+
+		#Select the correct font based on italics and boldness.
+		UM.Logger.Logger.log("d", str(element.attrib))
+		font_style = element.attrib.get("font-style", "normal")
+		font_weight = self.convert_float(element.attrib, "font-weight", 400)
+		is_italic = font_style == "italic"
+		is_oblique = font_style == "oblique"
+		is_bold = font_weight >= 550 #Freetype doesn't support getting the font's weight or adjusting it.
+		face = freetype.Face(self.system_fonts[font_name][0])
+		best_attributes_satisfied = set()
+		for candidate in self.system_fonts[font_name]:
+			candidate_face = freetype.Face(candidate)
+			candidate_flags = candidate_face.style_flags
+			attributes_satisfied = set()
+			if is_italic and (candidate_flags & freetype.ft_enums.FT_STYLE_FLAGS["FT_STYLE_FLAG_ITALIC"]) > 0:
+				attributes_satisfied.add("italic")
+			elif not is_italic and (candidate_flags & freetype.ft_enums.FT_STYLE_FLAGS["FT_STYLE_FLAG_ITALIC"]) == 0:
+				attributes_satisfied.add("italic")
+			if is_bold and (candidate_flags & freetype.ft_enums.FT_STYLE_FLAGS["FT_STYLE_FLAG_BOLD"]) > 0:
+				attributes_satisfied.add("bold")
+			elif not is_bold and (candidate_flags & freetype.ft_enums.FT_STYLE_FLAGS["FT_STYLE_FLAG_BOLD"]) == 0:
+				attributes_satisfied.add("bold")
+
+			if len(attributes_satisfied) > len(best_attributes_satisfied):
+				face = candidate_face
+				best_attributes_satisfied = attributes_satisfied
+		if is_italic and "italic" not in best_attributes_satisfied:
+			is_oblique = True #Artificial italics. Only applied if italics are required but not available, not the other way around because it'll be unknown how italic they are so it can't really be undone.
+		if "bold" not in best_attributes_satisfied:
+			if is_bold:
+				character_stretch_x = font_weight / 400
+			else:
+				character_stretch_x = 400 / font_weight
+
 		face.set_char_size(0, int(round(font_size / 25.4 * 72 * 64)), 362, 362) #This DPI of 362 seems to be the magic number to get the font size correct, but I don't know why.
 
 		char_x = 0 #Position of this character within the text element.
@@ -1311,8 +1350,12 @@ class Parser:
 		previous_char = 0 #To get correct kerning.
 
 		for index, character in enumerate(text):
-			per_character_transform = numpy.matmul(transformation, self.convert_transform("rotate({rotation}, {x}, {y})".format(rotation=rotate, x=x + char_x, y=y + char_y)))
-
+			per_character_transform = numpy.matmul(transformation, self.convert_transform("translate({x}, {y})".format(x=x + char_x, y=y + char_y)))
+			per_character_transform = numpy.matmul(per_character_transform, self.convert_transform("scalex({scalex})".format(scalex=character_stretch_x)))
+			per_character_transform = numpy.matmul(per_character_transform, self.convert_transform("rotate({rotation})".format(rotation=rotate)))
+			if is_oblique:
+				per_character_transform = numpy.matmul(per_character_transform, self.convert_transform("skewx({angle})".format(angle=10)))
+			per_character_transform = numpy.matmul(per_character_transform, self.convert_transform("translate(-{x}, -{y})".format(x=x + char_x, y=y + char_y)))
 			face.load_char(character)
 			outline = face.glyph.outline
 			start = 0
