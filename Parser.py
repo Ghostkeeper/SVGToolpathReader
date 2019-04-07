@@ -109,11 +109,12 @@ class Parser:
 		is_float = lambda s: re.fullmatch(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", s) is not None
 		tautology = lambda s: True
 		attribute_validate = { #For each supported attribute, a predicate to validate whether it is correctly formed.
-			"stroke-width": is_float,
-			"transform": tautology,
 			"font-family": tautology,
 			"font-weight": is_float,
-			"font-style": lambda s: s in {"normal", "italic", "oblique", "initial"} #Don't include "inherit" since we want it to inherit then as if not set.
+			"font-style": lambda s: s in {"normal", "italic", "oblique", "initial"}, #Don't include "inherit" since we want it to inherit then as if not set.
+			"stroke-width": is_float,
+			"text-transform": lambda s: s in {"none", "capitalize", "uppercase", "lowercase", "initial"}, #Don't include "inherit" again.
+			"transform": tautology
 		}
 		result = {}
 
@@ -769,11 +770,12 @@ class Parser:
 
 		#Put all CSS attributes in the attrib dict, even if they are not normally available in SVG. It'll be easier to parse there if we keep it separated.
 		tracked_css = { #For each property, also their defaults.
-			"stroke-width": "0.35mm",
-			"transform": "",
 			"font-size": "12pt",
 			"font-style": "normal",
-			"font-weight": "400"
+			"font-weight": "400",
+			"stroke-width": "0.35mm",
+			"text-transform": "none",
+			"transform": ""
 		}
 		for attribute in tracked_css:
 			element.attrib[attribute] = css.get(attribute, tracked_css[attribute])
@@ -1306,8 +1308,15 @@ class Parser:
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
 		font_name = self.convert_font_family(element.attrib.get("font-family", "serif").lower())
 		font_size = self.convert_length(element.attrib.get("font-size", "12pt"))
+		text_transform = element.attrib.get("text-transform", "none")
 
 		text = " ".join(element.text.split()) #Change all whitespace into spaces.
+		if text_transform == "capitalize":
+			text = " ".join((word.capitalize() for word in text.split()))
+		elif text_transform == "uppercase":
+			text = text.upper()
+		elif text_transform == "lowercase":
+			text = text.lower()
 
 		character_stretch_x = 1
 
