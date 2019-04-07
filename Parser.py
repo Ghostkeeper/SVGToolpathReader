@@ -1352,9 +1352,9 @@ class Parser:
 		for index, character in enumerate(text):
 			per_character_transform = numpy.matmul(transformation, self.convert_transform("translate({x}, {y})".format(x=x + char_x, y=y + char_y)))
 			per_character_transform = numpy.matmul(per_character_transform, self.convert_transform("scalex({scalex})".format(scalex=character_stretch_x)))
-			per_character_transform = numpy.matmul(per_character_transform, self.convert_transform("rotate({rotation})".format(rotation=rotate)))
 			if is_oblique:
 				per_character_transform = numpy.matmul(per_character_transform, self.convert_transform("skewx({angle})".format(angle=10)))
+			per_character_transform = numpy.matmul(per_character_transform, self.convert_transform("rotate({rotation})".format(rotation=rotate)))
 			per_character_transform = numpy.matmul(per_character_transform, self.convert_transform("translate(-{x}, -{y})".format(x=x + char_x, y=y + char_y)))
 			face.load_char(character)
 			outline = face.glyph.outline
