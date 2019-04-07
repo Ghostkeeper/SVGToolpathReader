@@ -29,7 +29,7 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 	extruder_number = cura.Settings.ExtruderManager.ExtruderManager.getInstance().activeExtruderIndex
 	extruder_stack = cura.Settings.ExtruderManager.ExtruderManager.getInstance().getActiveExtruderStack()
 	layer_height_0 = extruder_stack.getProperty("layer_height_0", "value")
-	material_flow = extruder_stack.getProperty("material_flow", "value") / 100
+	material_flow = extruder_stack.getProperty("material_flow_layer_0", "value") / 100
 	material_diameter = extruder_stack.getProperty("material_diameter", "value")
 	machine_center_is_zero = extruder_stack.getProperty("machine_center_is_zero", "value") #Necessary to know if we need to offset the coordinates for layer view.
 	machine_gcode_flavor = extruder_stack.getProperty("machine_gcode_flavor", "value") #Necessary to track if we need to extrude volumetric or lengthwise.
