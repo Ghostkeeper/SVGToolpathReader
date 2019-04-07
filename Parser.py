@@ -1343,6 +1343,7 @@ class Parser:
 				character_stretch_x = 400 / font_weight
 
 		face.set_char_size(0, int(round(font_size / 25.4 * 72 * 64)), 362, 362) #This DPI of 362 seems to be the magic number to get the font size correct, but I don't know why.
+		ascent = face.ascender / 64 / 72 * 25.4
 
 		char_x = 0 #Position of this character within the text element.
 		char_y = 0
@@ -1352,7 +1353,9 @@ class Parser:
 			per_character_transform = numpy.matmul(transformation, self.convert_transform("translate({x}, {y})".format(x=x + char_x, y=y + char_y)))
 			per_character_transform = numpy.matmul(per_character_transform, self.convert_transform("scalex({scalex})".format(scalex=character_stretch_x)))
 			if is_oblique:
-				per_character_transform = numpy.matmul(per_character_transform, self.convert_transform("skewx({angle})".format(angle=10)))
+				per_character_transform = numpy.matmul(per_character_transform, self.convert_transform("translate(0, -{ascent})".format(ascent=ascent)))
+				per_character_transform = numpy.matmul(per_character_transform, self.convert_transform("skewx(-10)"))
+				per_character_transform = numpy.matmul(per_character_transform, self.convert_transform("translate(0, {ascent})".format(ascent=ascent)))
 			per_character_transform = numpy.matmul(per_character_transform, self.convert_transform("rotate({rotation})".format(rotation=rotate)))
 			per_character_transform = numpy.matmul(per_character_transform, self.convert_transform("translate(-{x}, -{y})".format(x=x + char_x, y=y + char_y)))
 			face.load_char(character)
