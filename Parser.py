@@ -1306,7 +1306,8 @@ class Parser:
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
 		font_name = self.convert_font_family(element.attrib.get("font-family", "serif").lower())
 		font_size = self.convert_length(element.attrib.get("font-size", "12pt"))
-		text = " ".join(element.text.split())
+
+		text = " ".join(element.text.split()) #Change all whitespace into spaces.
 
 		character_stretch_x = 1
 
