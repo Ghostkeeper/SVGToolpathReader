@@ -918,9 +918,8 @@ class Parser:
 		x2 = self.convert_length(element.attrib.get("x2", "0"))
 		y2 = self.convert_length(element.attrib.get("y2", "0"), vertical=True)
 
-		x1, y1 = self.apply_transformation(x1, y1, transformation)
-		x2, y2 = self.apply_transformation(x2, y2, transformation)
-		yield TravelCommand.TravelCommand(x=x1, y=y1)
+		tx1, ty1 = self.apply_transformation(x1, y1, transformation)
+		yield TravelCommand.TravelCommand(x=tx1, y=ty1)
 		yield from self.extrude_line(x2, y2, line_width, transformation)
 
 	def parse_path(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
