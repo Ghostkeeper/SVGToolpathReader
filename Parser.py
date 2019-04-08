@@ -436,12 +436,12 @@ class Parser:
 		rx = abs(rx)
 		ry = abs(ry)
 		if rx == 0 or ry == 0: #Invalid radius. Skip this arc.
-			yield ExtrudeCommand.ExtrudeCommand(end_x, end_y, line_width)
+			yield from self.extrude_line(end_x, end_y, line_width, transformation)
 			return
 		start_tx, start_ty = self.apply_transformation(start_x, start_y, transformation)
 		end_tx, end_ty = self.apply_transformation(end_x, end_y, transformation)
 		if (end_tx - start_tx) * (end_tx - start_tx) + (end_ty - start_ty) * (end_ty - start_ty) <= self.resolution * self.resolution: #Too small to fit with higher resolution.
-			yield ExtrudeCommand.ExtrudeCommand(end_tx, end_ty, line_width)
+			yield from self.extrude_line(end_x, end_y, line_width, transformation)
 			return
 
 		#Implementation of https://www.w3.org/TR/SVG/implnote.html#ArcImplementationNotes to find centre of ellipse.
@@ -514,9 +514,9 @@ class Parser:
 			current_x = new_x
 			current_y = new_y
 			current_tx, current_ty = self.apply_transformation(current_x, current_y, transformation)
-			yield ExtrudeCommand.ExtrudeCommand(current_tx, current_ty, line_width)
+			yield from self.extrude_line(current_x, current_y, line_width, transformation)
 			start_angle = new_angle
-		yield ExtrudeCommand.ExtrudeCommand(end_tx, end_ty, line_width)
+		yield from self.extrude_line(end_x, end_y, line_width, transformation)
 
 	def extrude_cubic(self, start_x, start_y, handle1_x, handle1_y, handle2_x, handle2_y, end_x, end_y, line_width, transformation) -> typing.Generator[ExtrudeCommand.ExtrudeCommand, None, None]:
 		"""
@@ -590,10 +590,22 @@ class Parser:
 			current_x = new_x
 			current_y = new_y
 			current_tx, current_ty = self.apply_transformation(current_x, current_y, transformation)
-			yield ExtrudeCommand.ExtrudeCommand(current_tx, current_ty, line_width)
+			yield from self.extrude_line(current_x, current_y, line_width, transformation)
 			p_min = new_p
 			p_max = 1
-		yield ExtrudeCommand.ExtrudeCommand(end_tx, end_ty, line_width) #And the last step to end exactly on our goal.
+		yield from self.extrude_line(end_x, end_y, line_width, transformation) #And the last step to end exactly on our goal.
+
+	def extrude_line(self, end_x, end_y, line_width, transformation) -> typing.Generator[ExtrudeCommand.ExtrudeCommand, None, None]:
+		"""
+		Extrude a line towards a destination.
+		:param end_x: The X position of the destination.
+		:param end_y: The Y position of the destination.
+		:param line_width: The line width of the line to draw.
+		:param transformation: Any transformation matrix to apply to the line.
+		:return: A sequence of commands necessary to print the line.
+		"""
+		end_tx, end_ty = self.apply_transformation(end_x, end_y, transformation)
+		yield ExtrudeCommand.ExtrudeCommand(end_tx, end_ty, line_width)
 
 	def extrude_quadratic(self, start_x, start_y, handle_x, handle_y, end_x, end_y, line_width, transformation) -> typing.Generator[ExtrudeCommand.ExtrudeCommand, None, None]:
 		"""
@@ -619,17 +631,17 @@ class Parser:
 		#First check if handle lies exactly between start and end. If so, we just draw one line from start to finish.
 		if start_x == end_x:
 			if handle_x == start_x and (start_y <= handle_y <= end_y or start_y >= handle_y >= end_y):
-				yield ExtrudeCommand.ExtrudeCommand(end_tx, end_ty, line_width)
+				yield from self.extrude_line(end_x, end_y, line_width, transformation)
 				return
 		elif start_y == end_y:
 			if handle_y == start_y and (start_x <= handle_x <= end_x or start_x >= handle_x >= end_x):
-				yield ExtrudeCommand.ExtrudeCommand(end_tx, end_ty, line_width)
+				yield from self.extrude_line(end_x, end_y, line_width, transformation)
 				return
 		else:
 			slope_deviation = (handle_x - start_x) / (end_x - start_x) - (handle_y - start_y) / (end_y - start_y)
 			if abs(slope_deviation) == 0:
 				if start_x <= handle_x <= end_x or start_x >= handle_x >= end_x:
-					yield ExtrudeCommand.ExtrudeCommand(end_tx, end_ty, line_width)
+					yield from self.extrude_line(end_x, end_y, line_width, transformation)
 					return
 
 		current_x = start_x
@@ -664,10 +676,10 @@ class Parser:
 			current_x = new_x
 			current_y = new_y
 			current_tx, current_ty = self.apply_transformation(current_x, current_y, transformation)
-			yield ExtrudeCommand.ExtrudeCommand(current_tx, current_ty, line_width)
+			yield from self.extrude_line(current_x, current_y, line_width, transformation)
 			p_min = new_p
 			p_max = 1
-		yield ExtrudeCommand.ExtrudeCommand(end_tx, end_ty, line_width) #And the last step to end exactly on our goal.
+		yield from self.extrude_line(end_x, end_y, line_width, transformation) #And the last step to end exactly on our goal.
 
 	def find_definitions(self, element) -> typing.Dict[str, xml.etree.ElementTree.Element]:
 		"""
@@ -909,7 +921,7 @@ class Parser:
 		x1, y1 = self.apply_transformation(x1, y1, transformation)
 		x2, y2 = self.apply_transformation(x2, y2, transformation)
 		yield TravelCommand.TravelCommand(x=x1, y=y1)
-		yield ExtrudeCommand.ExtrudeCommand(x=x2, y=y2, line_width=line_width)
+		yield from self.extrude_line(x2, y2, line_width, transformation)
 
 	def parse_path(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 		"""
@@ -1027,28 +1039,24 @@ class Parser:
 			elif command_name == "H": #Horizontal line.
 				while len(parameters) >= 1:
 					x = parameters[0] * self.unit_w
-					tx, ty = self.apply_transformation(x, y, transformation)
-					yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
+					yield from self.extrude_line(x, y, line_width, transformation)
 					parameters = parameters[1:]
 			elif command_name == "h": #Relative horizontal line.
 				while len(parameters) >= 1:
 					x += parameters[0] * self.unit_w
-					tx, ty = self.apply_transformation(x, y, transformation)
-					yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
+					yield from self.extrude_line(x, y, line_width, transformation)
 					parameters = parameters[1:]
 			elif command_name == "L": #Line.
 				while len(parameters) >= 2:
 					x = parameters[0] * self.unit_w
 					y = parameters[1] * self.unit_h
-					tx, ty = self.apply_transformation(x, y, transformation)
-					yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
+					yield from self.extrude_line(x, y, line_width, transformation)
 					parameters = parameters[2:]
 			elif command_name == "l": #Relative line.
 				while len(parameters) >= 2:
 					x += parameters[0] * self.unit_w
 					y += parameters[1] * self.unit_h
-					tx, ty = self.apply_transformation(x, y, transformation)
-					yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
+					yield from self.extrude_line(x, y, line_width, transformation)
 					parameters = parameters[2:]
 			elif command_name == "Q": #Quadratic curve.
 				while len(parameters) >= 4:
@@ -1129,20 +1137,17 @@ class Parser:
 			elif command_name == "V": #Vertical line.
 				while len(parameters) >= 1:
 					y = parameters[0] * self.unit_h
-					tx, ty = self.apply_transformation(x, y, transformation)
-					yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
+					yield from self.extrude_line(x, y, line_width, transformation)
 					parameters = parameters[1:]
 			elif command_name == "v": #Relative vertical line.
 				while len(parameters) >= 1:
 					y += parameters[0] * self.unit_h
-					tx, ty = self.apply_transformation(x, y, transformation)
-					yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
+					yield from self.extrude_line(x, y, line_width, transformation)
 					parameters = parameters[1:]
 			elif command_name == "Z" or command_name == "z":
 				x = start_x
 				y = start_y
-				tx, ty = self.apply_transformation(x, y, transformation)
-				yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
+				yield from self.extrude_line(x, y, line_width, transformation)
 			else: #Unrecognised command, or M or m which we processed separately.
 				pass
 
@@ -1170,15 +1175,15 @@ class Parser:
 		for x, y in self.convert_points(element.attrib.get("points", "")):
 			x *= self.unit_w
 			y *= self.unit_h
-			x, y = self.apply_transformation(x, y, transformation)
 			if first_x is None or first_y is None:
 				first_x = x
 				first_y = y
-				yield TravelCommand.TravelCommand(x=x, y=y)
+				tx, ty = self.apply_transformation(x, y, transformation)
+				yield TravelCommand.TravelCommand(x=tx, y=ty)
 			else:
-				yield ExtrudeCommand.ExtrudeCommand(x=x, y=y, line_width=line_width)
+				yield from self.extrude_line(x, y, line_width, transformation)
 		if first_x is not None and first_y is not None: #Close the polygon.
-			yield ExtrudeCommand.ExtrudeCommand(x=first_x, y=first_y, line_width=line_width)
+			yield from self.extrude_line(first_x, first_y, line_width, transformation)
 
 	def parse_polyline(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 		"""
@@ -1196,12 +1201,12 @@ class Parser:
 		for x, y in self.convert_points(element.attrib.get("points", "")):
 			x *= self.unit_w
 			y *= self.unit_h
-			x, y = self.apply_transformation(x, y, transformation)
 			if is_first:
-				yield TravelCommand.TravelCommand(x=x, y=y)
+				tx, ty = self.apply_transformation(x, y, transformation)
+				yield TravelCommand.TravelCommand(x=tx, y=ty)
 				is_first = False
 			else:
-				yield ExtrudeCommand.ExtrudeCommand(x=x, y=y, line_width=line_width)
+				yield from self.extrude_line(x, y, line_width, transformation)
 
 	def parse_rect(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
 		"""
@@ -1224,17 +1229,13 @@ class Parser:
 		ry = min(ry, height / 2)
 		tx, ty = self.apply_transformation(x + rx, y, transformation)
 		yield TravelCommand.TravelCommand(x=tx, y=ty)
-		tx, ty = self.apply_transformation(x + width - rx, y, transformation)
-		yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
+		yield from self.extrude_line(x + width - rx, y, line_width, transformation)
 		yield from self.extrude_arc(x + width - rx, y, rx, ry, 0, False, True, x + width, y + ry, line_width, transformation)
-		tx, ty = self.apply_transformation(x + width, y + height - ry, transformation)
-		yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
+		yield from self.extrude_line(x + width, y + height - ry, line_width, transformation)
 		yield from self.extrude_arc(x + width, y + height - ry, rx, ry, 0, False, True, x + width - rx, y + height, line_width, transformation)
-		tx, ty = self.apply_transformation(x + rx, y + height, transformation)
-		yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
+		yield from self.extrude_line(x + rx, y + height, line_width, transformation)
 		yield from self.extrude_arc(x + rx, y + height, rx, ry, 0, False, True, x, y + height - ry, line_width, transformation)
-		tx, ty = self.apply_transformation(x, y + ry, transformation)
-		yield ExtrudeCommand.ExtrudeCommand(x=tx, y=ty, line_width=line_width)
+		yield from self.extrude_line(x, y + ry, line_width, transformation)
 		yield from self.extrude_arc(x, y + ry, rx, ry, 0, False, True, x + rx, y, line_width, transformation)
 
 	def parse_svg(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
@@ -1396,8 +1397,7 @@ class Parser:
 						while len(current_curve) > 0:
 							if len(current_curve) == 1: #Just enough left for a straight line, whatever the flags of the last point are.
 								current_x, current_y = current_curve[0]
-								current_tx, current_ty = self.apply_transformation(x + char_x + current_x, y + char_y + current_y, per_character_transform)
-								yield ExtrudeCommand.ExtrudeCommand(current_tx, current_ty, line_width)
+								yield from self.extrude_line(x + char_x + current_x, y + char_y + current_y, line_width, per_character_transform)
 								current_curve = []
 							elif len(current_curve) == 2: #Just enough left for a quadratic curve, even though the curve specified cubic. Shouldn't happen if the font was correctly formed.
 								yield from self.extrude_quadratic(x + char_x + current_x, y + char_y + current_y,
