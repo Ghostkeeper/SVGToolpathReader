@@ -247,7 +247,10 @@ class Parser:
 			points = points[:-1]
 
 		for x, y in (points[i:i + 2] for i in range(0, len(points), 2)):
-			yield x, y
+			try:
+				yield float(x), float(y)
+			except ValueError: #Not properly formatted floats.
+				continue
 
 	def convert_transform(self, transform) -> numpy.ndarray:
 		"""
