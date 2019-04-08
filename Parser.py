@@ -861,8 +861,7 @@ class Parser:
 		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
 
-		tx, ty = self.apply_transformation(cx + r, cy, transformation)
-		yield TravelCommand.TravelCommand(x=tx, y=ty)
+		yield from self.travel(cx + r, cy, transformation)
 		yield from self.extrude_arc(cx + r, cy, r, r, 0, False, False, cx, cy - r, line_width, transformation)
 		yield from self.extrude_arc(cx, cy - r, r, r, 0, False, False, cx - r, cy, line_width, transformation)
 		yield from self.extrude_arc(cx - r, cy, r, r, 0, False, False, cx, cy + r, line_width, transformation)
@@ -885,8 +884,7 @@ class Parser:
 		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
 
-		tx, ty = self.apply_transformation(cx + rx, cy, transformation)
-		yield TravelCommand.TravelCommand(x=tx, y=ty)
+		yield from self.travel(cx + rx, cy, transformation)
 		yield from self.extrude_arc(cx + rx, cy, rx, ry, 0, False, False, cx, cy - ry, line_width, transformation)
 		yield from self.extrude_arc(cx, cy - ry, rx, ry, 0, False, False, cx - rx, cy, line_width, transformation)
 		yield from self.extrude_arc(cx - rx, cy, rx, ry, 0, False, False, cx, cy + ry, line_width, transformation)
@@ -918,8 +916,7 @@ class Parser:
 		x2 = self.convert_length(element.attrib.get("x2", "0"))
 		y2 = self.convert_length(element.attrib.get("y2", "0"), vertical=True)
 
-		tx1, ty1 = self.apply_transformation(x1, y1, transformation)
-		yield TravelCommand.TravelCommand(x=tx1, y=ty1)
+		yield from self.travel(x1, y1, transformation)
 		yield from self.extrude_line(x2, y2, line_width, transformation)
 
 	def parse_path(self, element) -> typing.Generator[typing.Union[TravelCommand.TravelCommand, ExtrudeCommand.ExtrudeCommand], None, None]:
@@ -961,8 +958,7 @@ class Parser:
 					continue #Not enough parameters to the M command. Skip it.
 				x = parameters[0] * self.unit_w
 				y = parameters[1] * self.unit_h
-				tx, ty = self.apply_transformation(x, y, transformation)
-				yield TravelCommand.TravelCommand(x=tx, y=ty)
+				yield from self.travel(x, y, transformation)
 				if len(parameters) >= 2:
 					command_name = "L" #The next parameters are interpreted as being lines.
 					parameters = parameters[2:]
@@ -973,8 +969,7 @@ class Parser:
 					continue #Not enough parameters to the m command. Skip it.
 				x += parameters[0] * self.unit_w
 				y += parameters[1] * self.unit_h
-				tx, ty = self.apply_transformation(x, y, transformation)
-				yield TravelCommand.TravelCommand(x=tx, y=ty)
+				yield from self.travel(x, y, transformation)
 				if len(parameters) >= 2:
 					command_name = "l" #The next parameters are interpreted as being relative lines.
 					parameters = parameters[2:]
@@ -1177,8 +1172,7 @@ class Parser:
 			if first_x is None or first_y is None:
 				first_x = x
 				first_y = y
-				tx, ty = self.apply_transformation(x, y, transformation)
-				yield TravelCommand.TravelCommand(x=tx, y=ty)
+				yield from self.travel(x, y, transformation)
 			else:
 				yield from self.extrude_line(x, y, line_width, transformation)
 		if first_x is not None and first_y is not None: #Close the polygon.
@@ -1201,8 +1195,7 @@ class Parser:
 			x *= self.unit_w
 			y *= self.unit_h
 			if is_first:
-				tx, ty = self.apply_transformation(x, y, transformation)
-				yield TravelCommand.TravelCommand(x=tx, y=ty)
+				yield from self.travel(x, y, transformation)
 				is_first = False
 			else:
 				yield from self.extrude_line(x, y, line_width, transformation)
@@ -1226,8 +1219,7 @@ class Parser:
 			return #No surface, no print!
 		rx = min(rx, width / 2) #Limit rounded corners to half the rectangle.
 		ry = min(ry, height / 2)
-		tx, ty = self.apply_transformation(x + rx, y, transformation)
-		yield TravelCommand.TravelCommand(x=tx, y=ty)
+		yield from self.travel(x + rx, y, transformation)
 		yield from self.extrude_line(x + width - rx, y, line_width, transformation)
 		yield from self.extrude_arc(x + width - rx, y, rx, ry, 0, False, True, x + width, y + ry, line_width, transformation)
 		yield from self.extrude_line(x + width, y + height - ry, line_width, transformation)
@@ -1385,8 +1377,7 @@ class Parser:
 				tags.append(tags[0])
 
 				current_x, current_y = points[0][0], points[0][1]
-				current_tx, current_ty = self.apply_transformation(x + char_x + current_x, y + char_y + current_y, per_character_transform)
-				yield TravelCommand.TravelCommand(current_tx, current_ty) #Move to first segment.
+				yield from self.travel(x + char_x + current_x, y + char_y + current_y, per_character_transform) #Move to first segment.
 
 				current_curve = [] #Between every on-curve point we'll draw a curve. These are the cubic handles of the curve.
 				for point_index in range(1, len(points)):
@@ -1448,3 +1439,14 @@ class Parser:
 			char_x += (face.glyph.advance.x + kerning.x) / 64.0 / 96.0 * 25.4
 			char_y -= (face.glyph.advance.y + kerning.y) / 64.0 / 96.0 * 25.4
 			previous_char = character
+
+	def travel(self, end_x, end_y, transformation) -> typing.Generator[TravelCommand.TravelCommand, None, None]:
+		"""
+		Yields a travel move to the specified destination.
+		:param end_x: The X coordinate of the position to travel to.
+		:param end_y: The Y coordinate of the position to travel to.
+		:param transformation: A transformation matrix to apply to the move.
+		:return: A sequence of commands necessary to make the travel move.
+		"""
+		end_tx, end_ty = self.apply_transformation(end_x, end_y, transformation)
+		yield TravelCommand.TravelCommand(x=end_tx, y=end_ty)
