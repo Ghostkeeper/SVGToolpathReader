@@ -86,6 +86,7 @@ class Parser:
 				"system-ui": "system-ui"
 			}
 
+		self.dasharray = [] #The current array of dashes to paint the next line segment with.
 		self.dasharray_offset = 0 #The current offset to print the next line segment with.
 
 	def apply_transformation(self, x, y, transformation) -> typing.Tuple[float, float]:
@@ -110,11 +111,15 @@ class Parser:
 		"""
 		is_float = lambda s: re.fullmatch(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", s) is not None
 		tautology = lambda s: True
+		is_list_of_lengths = lambda s: re.fullmatch(r"([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?(cap|ch|em|ex|ic|lh|rem|rlh|vh|vw|vi|vb|vmin|vmax|px|cm|mm|Q|in|pc|pt|%)?[,\s])*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)?(cap|ch|em|ex|ic|lh|rem|rlh|vh|vw|vi|vb|vmin|vmax|px|cm|mm|Q|in|pc|pt|%)?", s) is not None
+		is_length = lambda s: re.fullmatch(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?(cap|ch|em|ex|ic|lh|rem|rlh|vh|vw|vi|vb|vmin|vmax|px|cm|mm|Q|in|pc|pt|%)?", s)
 		attribute_validate = { #For each supported attribute, a predicate to validate whether it is correctly formed.
 			"font-family": tautology,
 			"font-weight": is_float,
 			"font-style": lambda s: s in {"normal", "italic", "oblique", "initial"}, #Don't include "inherit" since we want it to inherit then as if not set.
-			"stroke-width": is_float,
+			"stroke-dasharray": is_list_of_lengths,
+			"stroke-dashoffset": is_length,
+			"stroke-width": is_length,
 			"text-transform": lambda s: s in {"none", "capitalize", "uppercase", "lowercase", "initial"}, #Don't include "inherit" again.
 			"transform": tautology
 		}
@@ -130,6 +135,22 @@ class Parser:
 					if attribute_validate[attribute](piece): #Only store the attribute if it has a valid value.
 						result[attribute] = piece
 
+		return result
+
+	def convert_dasharray(self, dasharray) -> typing.List[float]:
+		"""
+		Parses a stroke-dasharray property out of CSS.
+
+		The length elements are converted into millimetres for extrusion.
+		:param dasharray: A stroke-dasharray property value.
+		:return: A list of floating point values that the stroke-dasharray
+		property was conveying.
+		"""
+		dasharray = dasharray.replace(",", " ")
+		length_list = dasharray.split()
+		result = []
+		for length in length_list:
+			result.append(self.convert_length(length))
 		return result
 
 	def convert_length(self, dimension, vertical=False, parent_size=None) -> float:
@@ -608,6 +629,7 @@ class Parser:
 		:param transformation: Any transformation matrix to apply to the line.
 		:return: A sequence of commands necessary to print the line.
 		"""
+		start_tx, start_ty = self.apply_transformation(start_x, start_y, transformation)
 		end_tx, end_ty = self.apply_transformation(end_x, end_y, transformation)
 		yield ExtrudeCommand.ExtrudeCommand(end_tx, end_ty, line_width)
 
@@ -792,6 +814,7 @@ class Parser:
 			"font-size": "12pt",
 			"font-style": "normal",
 			"font-weight": "400",
+			"stroke-dasharray": "",
 			"stroke-width": "0.35mm",
 			"text-transform": "none",
 			"transform": ""
@@ -864,6 +887,8 @@ class Parser:
 			return #Circles without radius don't exist here.
 		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
+		self.dasharray = self.convert_dasharray(element.attrib.get("stroke-dasharray", ""))
+		self.dasharray_offset = self.convert_length(element.attrib.get("stroke-dashoffset", "0"))
 
 		yield from self.travel(cx + r, cy, transformation)
 		yield from self.extrude_arc(cx + r, cy, r, r, 0, False, False, cx, cy - r, line_width, transformation)
@@ -887,6 +912,8 @@ class Parser:
 			return
 		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
+		self.dasharray = self.convert_dasharray(element.attrib.get("stroke-dasharray", ""))
+		self.dasharray_offset = self.convert_length(element.attrib.get("stroke-dashoffset", "0"))
 
 		yield from self.travel(cx + rx, cy, transformation)
 		yield from self.extrude_arc(cx + rx, cy, rx, ry, 0, False, False, cx, cy - ry, line_width, transformation)
@@ -915,6 +942,8 @@ class Parser:
 		"""
 		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
+		self.dasharray = self.convert_dasharray(element.attrib.get("stroke-dasharray", ""))
+		self.dasharray_offset = self.convert_length(element.attrib.get("stroke-dashoffset", "0"))
 		x1 = self.convert_length(element.attrib.get("x1", "0"))
 		y1 = self.convert_length(element.attrib.get("y1", "0"), vertical=True)
 		x2 = self.convert_length(element.attrib.get("x2", "0"))
@@ -934,6 +963,8 @@ class Parser:
 		"""
 		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
+		self.dasharray = self.convert_dasharray(element.attrib.get("stroke-dasharray", ""))
+		dasharray_offset = self.convert_length(element.attrib.get("stroke-dashoffset", "0"))
 		d = element.attrib.get("d", "")
 		x = 0 #Starting position.
 		y = 0
@@ -963,6 +994,7 @@ class Parser:
 				x = parameters[0] * self.unit_w
 				y = parameters[1] * self.unit_h
 				yield from self.travel(x, y, transformation)
+				self.dasharray_offset = dasharray_offset
 				if len(parameters) >= 2:
 					command_name = "L" #The next parameters are interpreted as being lines.
 					parameters = parameters[2:]
@@ -974,6 +1006,7 @@ class Parser:
 				x += parameters[0] * self.unit_w
 				y += parameters[1] * self.unit_h
 				yield from self.travel(x, y, transformation)
+				self.dasharray_offset = dasharray_offset
 				if len(parameters) >= 2:
 					command_name = "l" #The next parameters are interpreted as being relative lines.
 					parameters = parameters[2:]
@@ -1167,6 +1200,8 @@ class Parser:
 		"""
 		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
+		self.dasharray = self.convert_dasharray(element.attrib.get("stroke-dasharray", ""))
+		self.dasharray_offset = self.convert_length(element.attrib.get("stroke-dashoffset", "0"))
 
 		first_x = None #Save these in order to get back to the starting coordinates. And to use a travel command.
 		first_y = None
@@ -1197,6 +1232,8 @@ class Parser:
 		"""
 		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
+		self.dasharray = self.convert_dasharray(element.attrib.get("stroke-dasharray", ""))
+		self.dasharray_offset = self.convert_length(element.attrib.get("stroke-dashoffset", "0"))
 
 		is_first = True #We must use a travel command for the first coordinate pair.
 		prev_x = None
@@ -1226,6 +1263,8 @@ class Parser:
 		height = self.convert_length(element.attrib.get("height", "0"), vertical=True)
 		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
+		self.dasharray = self.convert_dasharray(element.attrib.get("stroke-dasharray", ""))
+		self.dasharray_offset = self.convert_length(element.attrib.get("stroke-dashoffset", "0"))
 
 		if width == 0 or height == 0:
 			return #No surface, no print!
@@ -1313,6 +1352,8 @@ class Parser:
 		text_length = self.convert_length(element.attrib.get("textLength", "0"))
 		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
+		self.dasharray = self.convert_dasharray(element.attrib.get("stroke-dasharray", ""))
+		dasharray_offset = self.convert_length(element.attrib.get("stroke-dashoffset", "0"))
 
 		text_transform = element.attrib.get("text-transform", "none")
 		text = " ".join(element.text.split()) #Change all whitespace into spaces.
@@ -1378,6 +1419,7 @@ class Parser:
 			outline = face.glyph.outline
 			start = 0
 			for contour_index in range(len(outline.contours)):
+				self.dasharray_offset = dasharray_offset
 				end = outline.contours[contour_index]
 				if end < start:
 					continue

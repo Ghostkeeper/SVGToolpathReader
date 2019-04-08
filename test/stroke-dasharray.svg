@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+	<rect x="10" y="15" rx="2" ry="2" width="30" height="20" fill="none" stroke="black" stroke-dasharray="15 2" />
+	<path fill="none" stroke="black" stroke-dasharray="15 2" d="M50,50 q20,20 40,0 h30 M50,55 q20,20 40,0 h30" />
+	<line x1="10" y1="80" x2="40" y2="80" stroke="black" stroke-dasharray="15 2" />
+	<line x1="40" y1="80" x2="40" y2="120" stroke="black" stroke-dasharray="15 2" />
+</svg>
