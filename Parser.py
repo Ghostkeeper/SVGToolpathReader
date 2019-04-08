@@ -155,6 +155,8 @@ class Parser:
 		self.dasharray_length = 0
 		for length in length_list:
 			length_mm = self.convert_length(length)
+			if length_mm < 0:
+				continue #Invalid. Ignore this one.
 			self.dasharray.append(length_mm)
 			self.dasharray_length += length_mm
 
