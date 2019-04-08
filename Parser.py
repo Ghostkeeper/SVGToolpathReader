@@ -1306,10 +1306,8 @@ class Parser:
 		text_length = self.convert_length(element.attrib.get("textLength", "0"))
 		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
-		font_name = self.convert_font_family(element.attrib.get("font-family", "serif").lower())
-		font_size = self.convert_length(element.attrib.get("font-size", "12pt"))
-		text_transform = element.attrib.get("text-transform", "none")
 
+		text_transform = element.attrib.get("text-transform", "none")
 		text = " ".join(element.text.split()) #Change all whitespace into spaces.
 		if text_transform == "capitalize":
 			text = " ".join((word.capitalize() for word in text.split()))
@@ -1320,7 +1318,8 @@ class Parser:
 
 		character_stretch_x = 1
 
-		#Select the correct font based on italics and boldness.
+		#Select the correct font based on name, italics and boldness.
+		font_name = self.convert_font_family(element.attrib.get("font-family", "serif").lower())
 		font_style = element.attrib.get("font-style", "normal")
 		font_weight = self.convert_float(element.attrib, "font-weight", 400)
 		is_italic = font_style == "italic"
@@ -1352,13 +1351,13 @@ class Parser:
 			else:
 				character_stretch_x = 400 / font_weight
 
+		font_size = self.convert_length(element.attrib.get("font-size", "12pt"))
 		face.set_char_size(0, int(round(font_size / 25.4 * 72 * 64)), 362, 362) #This DPI of 362 seems to be the magic number to get the font size correct, but I don't know why.
 		ascent = face.ascender / 64 / 72 * 25.4
 
 		char_x = 0 #Position of this character within the text element.
 		char_y = 0
 		previous_char = 0 #To get correct kerning.
-
 		for index, character in enumerate(text):
 			per_character_transform = numpy.matmul(transformation, self.convert_transform("translate({x}, {y})".format(x=x + char_x, y=y + char_y)))
 			per_character_transform = numpy.matmul(per_character_transform, self.convert_transform("scalex({scalex})".format(scalex=character_stretch_x)))
