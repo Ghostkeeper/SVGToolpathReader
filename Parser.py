@@ -88,6 +88,7 @@ class Parser:
 
 		self.dasharray = [] #The current array of dashes to paint the next line segment with.
 		self.dasharray_offset = 0 #The current offset to print the next line segment with.
+		self.dasharray_length = 0 #The sum of the dasharray.
 
 	def apply_transformation(self, x, y, transformation) -> typing.Tuple[float, float]:
 		"""
@@ -142,16 +143,20 @@ class Parser:
 		Parses a stroke-dasharray property out of CSS.
 
 		The length elements are converted into millimetres for extrusion.
+
+		The result is stored in self.dasharray, to be used with the next drawn
+		lines. Also, the total length is computed and stored in
+		self.dasharray_length for re-use.
 		:param dasharray: A stroke-dasharray property value.
-		:return: A list of floating point values that the stroke-dasharray
-		property was conveying.
 		"""
 		dasharray = dasharray.replace(",", " ")
 		length_list = dasharray.split()
-		result = []
+		self.dasharray = []
+		self.dasharray_length = 0
 		for length in length_list:
-			result.append(self.convert_length(length))
-		return result
+			length_mm = self.convert_length(length)
+			self.dasharray.append(length_mm)
+			self.dasharray_length += length_mm
 
 	def convert_length(self, dimension, vertical=False, parent_size=None) -> float:
 		"""
@@ -887,7 +892,7 @@ class Parser:
 			return #Circles without radius don't exist here.
 		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
-		self.dasharray = self.convert_dasharray(element.attrib.get("stroke-dasharray", ""))
+		self.convert_dasharray(element.attrib.get("stroke-dasharray", ""))
 		self.dasharray_offset = self.convert_length(element.attrib.get("stroke-dashoffset", "0"))
 
 		yield from self.travel(cx + r, cy, transformation)
@@ -912,7 +917,7 @@ class Parser:
 			return
 		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
-		self.dasharray = self.convert_dasharray(element.attrib.get("stroke-dasharray", ""))
+		self.convert_dasharray(element.attrib.get("stroke-dasharray", ""))
 		self.dasharray_offset = self.convert_length(element.attrib.get("stroke-dashoffset", "0"))
 
 		yield from self.travel(cx + rx, cy, transformation)
@@ -942,7 +947,7 @@ class Parser:
 		"""
 		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
-		self.dasharray = self.convert_dasharray(element.attrib.get("stroke-dasharray", ""))
+		self.convert_dasharray(element.attrib.get("stroke-dasharray", ""))
 		self.dasharray_offset = self.convert_length(element.attrib.get("stroke-dashoffset", "0"))
 		x1 = self.convert_length(element.attrib.get("x1", "0"))
 		y1 = self.convert_length(element.attrib.get("y1", "0"), vertical=True)
@@ -963,7 +968,7 @@ class Parser:
 		"""
 		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
-		self.dasharray = self.convert_dasharray(element.attrib.get("stroke-dasharray", ""))
+		self.convert_dasharray(element.attrib.get("stroke-dasharray", ""))
 		dasharray_offset = self.convert_length(element.attrib.get("stroke-dashoffset", "0"))
 		d = element.attrib.get("d", "")
 		x = 0 #Starting position.
@@ -1200,7 +1205,7 @@ class Parser:
 		"""
 		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
-		self.dasharray = self.convert_dasharray(element.attrib.get("stroke-dasharray", ""))
+		self.convert_dasharray(element.attrib.get("stroke-dasharray", ""))
 		self.dasharray_offset = self.convert_length(element.attrib.get("stroke-dashoffset", "0"))
 
 		first_x = None #Save these in order to get back to the starting coordinates. And to use a travel command.
@@ -1232,7 +1237,7 @@ class Parser:
 		"""
 		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
-		self.dasharray = self.convert_dasharray(element.attrib.get("stroke-dasharray", ""))
+		self.convert_dasharray(element.attrib.get("stroke-dasharray", ""))
 		self.dasharray_offset = self.convert_length(element.attrib.get("stroke-dashoffset", "0"))
 
 		is_first = True #We must use a travel command for the first coordinate pair.
@@ -1263,7 +1268,7 @@ class Parser:
 		height = self.convert_length(element.attrib.get("height", "0"), vertical=True)
 		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
-		self.dasharray = self.convert_dasharray(element.attrib.get("stroke-dasharray", ""))
+		self.convert_dasharray(element.attrib.get("stroke-dasharray", ""))
 		self.dasharray_offset = self.convert_length(element.attrib.get("stroke-dashoffset", "0"))
 
 		if width == 0 or height == 0:
@@ -1352,7 +1357,7 @@ class Parser:
 		text_length = self.convert_length(element.attrib.get("textLength", "0"))
 		line_width = self.convert_length(element.attrib.get("stroke-width", "0.35mm"))
 		transformation = self.convert_transform(element.attrib.get("transform", ""))
-		self.dasharray = self.convert_dasharray(element.attrib.get("stroke-dasharray", ""))
+		self.convert_dasharray(element.attrib.get("stroke-dasharray", ""))
 		dasharray_offset = self.convert_length(element.attrib.get("stroke-dashoffset", "0"))
 
 		text_transform = element.attrib.get("text-transform", "none")
