@@ -5,7 +5,7 @@
 #You should have received a copy of the GNU Affero General Public License along with this plug-in. If not, see <https://gnu.org/licenses/>.
 
 project(SVGToolpathReader)
-cmake_minimum_required(VERSION 3.12.3) #Oldest version it's been tested with.
+cmake_minimum_required(VERSION 3.10.2) #Oldest version it's been tested with.
 
 #Project metadata.
 set(SVGTOOLPATHREADER_PLUGIN_NAME "SVG Toolpath Reader" CACHE STRING "The name of the plug-in in distribution.")
