@@ -12,6 +12,7 @@ import numpy #Transformation matrices.
 import os #To find system fonts.
 import os.path #To import the FreeType library.
 import re #Parsing D attributes of paths, and font paths for Linux.
+import subprocess #To find system fonts in Linux.
 import sys #To import the FreeType library.
 import threading #To find system fonts asynchronously.
 import typing
@@ -77,14 +78,18 @@ class Parser:
 				"system-ui": ".sf ns text"
 			}
 		elif UM.Platform.Platform.isLinux():
-			self.safe_fonts = { #Linux has its safe fonts available through the system fc-match system, which automatically redirects it to the system's preference.
-				"serif": "serif",
-				"sans-serif": "sans-serif",
-				"cursive": "cursive",
-				"fantasy": "fantasy",
-				"monospace": "monospace",
-				"system-ui": "system-ui"
-			}
+			self.safe_fonts = {}
+			for safe_font in {"serif", "sans-serif", "cursive", "fantasy", "monospace", "system-ui"}:
+				try:
+					output = subprocess.Popen(["fc-match", safe_font], stdout=subprocess.PIPE).communicate(timeout=10)[0].decode("UTF-8")
+					fonts = output[output.find(": ") + 2:]
+					fonts = fonts.split("\"")
+					while not fonts[0].strip():
+						fonts = fonts[1:]
+					self.safe_fonts[safe_font] = fonts[0] #Use the first non-empty string as the safe font.
+				except: #fc-match doesn't exist? Output is wrong?
+					UM.Logger.Logger.logException("w", "Unable to query system fonts.")
+					continue
 
 		self.dasharray = [] #The current array of dashes to paint the next line segment with.
 		self.dasharray_offset = 0 #The current offset to print the next line segment with.
