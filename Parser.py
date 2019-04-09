@@ -805,6 +805,10 @@ class Parser:
 				css["stroke-width"] = str(float(element.attrib["stroke-width"]))
 			except ValueError: #Not parseable as float.
 				pass
+		if "stroke-dasharray" in element.attrib:
+			css["stroke-dasharray"] = element.attrib["stroke-dasharray"]
+		if "stroke-dashoffset" in element.attrib:
+			css["stroke-dashoffset"] = element.attrib["stroke-dashoffset"]
 
 		#Find <style> subelements and add them to our CSS.
 		for child in element:
