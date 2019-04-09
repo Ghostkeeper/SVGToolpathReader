@@ -135,6 +135,8 @@ class Parser:
 					piece = piece.strip()
 					if attribute_validate[attribute](piece): #Only store the attribute if it has a valid value.
 						result[attribute] = piece
+					else:
+						UM.Logger.Logger.log("w", "Invalid value for CSS attribute {attribute}: {value}".format(attribute=attribute, value=piece))
 
 		return result
 
