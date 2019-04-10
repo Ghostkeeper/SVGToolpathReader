@@ -81,6 +81,11 @@ The following CSS properties are supported:
 * font-size
 * font-weight
 * font-style
+* stroke-dasharray
+* stroke-dashoffset
+* text-decoration
+* text-decoration-line
+* text-decoration-style
 * text-transform
 
 Line Widths
