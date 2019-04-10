@@ -1559,16 +1559,17 @@ class Parser:
 		decoration_lines = element.attrib.get("text-decoration-line", "")
 		decoration_lines = decoration_lines.split()
 		for decoration_line in decoration_lines:
-			line_y = None
 			if decoration_line == "underline":
 				line_y = y - face.underline_position / 64.0 / 96.0 * 25.4
 			elif decoration_line == "overline":
 				line_y = y - height
 			elif decoration_line == "line-through":
 				line_y = y - ascent / 2
-			if line_y is not None:
-				yield from self.travel(x, line_y, transformation)
-				yield from self.extrude_line(x, line_y, x + total_width, line_y, line_width, transformation)
+			else:
+				continue
+
+			yield from self.travel(x, line_y, transformation)
+			yield from self.extrude_line(x, line_y, x + total_width, line_y, line_width, transformation)
 
 	def travel(self, end_x, end_y, transformation) -> typing.Generator[TravelCommand.TravelCommand, None, None]:
 		"""
