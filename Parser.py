@@ -126,10 +126,11 @@ class Parser:
 			"stroke-dasharray": is_list_of_lengths,
 			"stroke-dashoffset": is_length,
 			"stroke-width": is_length,
+			"text-decoration": tautology, #Not going to do any sort of parsing on this one since it has all the colours and that's just way too complex.
 			"text-decoration-line": lambda s: all([part in {"none", "overline", "underline", "line-through", "initial"} for part in s.split()]),
 			"text-decoration-style": lambda s: s in {"solid", "double", "dotted", "dashed", "wavy", "initial"},
 			"text-transform": lambda s: s in {"none", "capitalize", "uppercase", "lowercase", "initial"}, #Don't include "inherit" again.
-			"transform": tautology
+			"transform": tautology #Not going to do any sort of parsing on this one because all the transformation functions make it very complex.
 		}
 		result = {}
 
@@ -876,6 +877,7 @@ class Parser:
 			"font-weight": "400",
 			"stroke-dasharray": "",
 			"stroke-width": "0.35mm",
+			"text-decoration": "",
 			"text-decoration-line": "",
 			"text-decoration-style": "solid",
 			"text-transform": "none",
@@ -1561,6 +1563,13 @@ class Parser:
 		decoration_lines = element.attrib.get("text-decoration-line", "")
 		decoration_lines = decoration_lines.split()
 		decoration_style = element.attrib.get("text-decoration-style", "solid")
+		decorations = element.attrib.get("text-decoration", "")
+		decorations = decorations.split()
+		for decoration in decorations: #Allow any order. It seems to get used interchangibly.
+			if decoration in {"overline", "underline", "line-through", "none"}:
+				decoration_lines.append(decoration)
+			if decoration in {"solid", "double", "wavy", "dotted", "dashed"}:
+				decoration_style = decoration
 		for decoration_line in decoration_lines:
 			if decoration_line == "underline":
 				line_y = y - face.underline_position / 64.0 / 96.0 * 25.4
