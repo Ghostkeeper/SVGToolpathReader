@@ -166,6 +166,9 @@ class Parser:
 				continue #Invalid. Ignore this one.
 			self.dasharray.append(length_mm)
 			self.dasharray_length += length_mm
+		if len(self.dasharray) % 2 == 1: #Double the sequence so that every segment is the same w.r.t. which is extruded and which is travelled.
+			self.dasharray *= 2
+			self.dasharray_length *= 2
 
 	def convert_length(self, dimension, vertical=False, parent_size=None) -> float:
 		"""
