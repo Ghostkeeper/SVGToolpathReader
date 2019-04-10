@@ -126,6 +126,7 @@ class Parser:
 			"stroke-dasharray": is_list_of_lengths,
 			"stroke-dashoffset": is_length,
 			"stroke-width": is_length,
+			"text-decoration-line": lambda s: all([part in {"none", "overline", "underline", "line-through", "initial"} for part in s.split()]),
 			"text-transform": lambda s: s in {"none", "capitalize", "uppercase", "lowercase", "initial"}, #Don't include "inherit" again.
 			"transform": tautology
 		}
@@ -874,6 +875,7 @@ class Parser:
 			"font-weight": "400",
 			"stroke-dasharray": "",
 			"stroke-width": "0.35mm",
+			"text-decoration-line": "",
 			"text-transform": "none",
 			"transform": ""
 		}
@@ -1460,6 +1462,7 @@ class Parser:
 		font_size = self.convert_length(element.attrib.get("font-size", "12pt"))
 		face.set_char_size(0, int(round(font_size / 25.4 * 72 * 64)), 362, 362) #This DPI of 362 seems to be the magic number to get the font size correct, but I don't know why.
 		ascent = face.ascender / 64 / 72 * 25.4
+		height = face.height / 64 / 72 * 25.4
 
 		char_x = 0 #Position of this character within the text element.
 		char_y = 0
@@ -1551,6 +1554,21 @@ class Parser:
 			char_x += (face.glyph.advance.x + kerning.x) / 64.0 / 96.0 * 25.4
 			char_y -= (face.glyph.advance.y + kerning.y) / 64.0 / 96.0 * 25.4
 			previous_char = character
+
+		total_width = char_x
+		decoration_lines = element.attrib.get("text-decoration-line", "")
+		decoration_lines = decoration_lines.split()
+		for decoration_line in decoration_lines:
+			line_y = None
+			if decoration_line == "underline":
+				line_y = y - face.underline_position / 64.0 / 96.0 * 25.4
+			elif decoration_line == "overline":
+				line_y = y - height
+			elif decoration_line == "line-through":
+				line_y = y - ascent / 2
+			if line_y is not None:
+				yield from self.travel(x, line_y, transformation)
+				yield from self.extrude_line(x, line_y, x + total_width, line_y, line_width, transformation)
 
 	def travel(self, end_x, end_y, transformation) -> typing.Generator[TravelCommand.TravelCommand, None, None]:
 		"""
