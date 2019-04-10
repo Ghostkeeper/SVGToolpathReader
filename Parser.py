@@ -1383,12 +1383,15 @@ class Parser:
 			"http://www.w3.org/TR/SVG11/feature#SVGDOM", #Since v1.0.0.
 			"http://www.w3.org/TR/SVG11/feature#SVG-static", #Since v1.0.0.
 			"http://www.w3.org/TR/SVG11/feature#SVGDOM-static", #Since v1.0.0.
-			"http://www.w3.org/TR/SVG11/feature#Structure", #Actually unsupported: <symbol> and <use>.
-			"http://www.w3.org/TR/SVG11/feature#BasicStructure", #Actually unsupported: <use>.
-			"http://www.w3.org/TR/SVG11/feature#ConditionalProcessing", #Actually unsupported: requiredExtensions and systemLanguage.
+			"http://www.w3.org/TR/SVG11/feature#CoreAttribute", #Since v1.1.0. Actually unsupported: xml:base (since embedding SVGs is not implemented yet).
+			"http://www.w3.org/TR/SVG11/feature#Structure", #Since v1.0.0. Actually unsupported: <symbol>.
+			"http://www.w3.org/TR/SVG11/feature#BasicStructure", #Since v1.1.0. Actually unsupported: <title>.
+			"http://www.w3.org/TR/SVG11/feature#ConditionalProcessing", #Since v1.0.0. Actually unsupported: requiredExtensions and systemLanguage.
+			"http://www.w3.org/TR/SVG11/feature#Style" #Since v1.0.0.
 			"http://www.w3.org/TR/SVG11/feature#Shape" #Since v1.0.0.
-			"http://www.w3.org/TR/SVG11/feature#PaintAttribute" #Actually unsupported: stroke-dasharray and stroke-dashoffset.
-			"http://www.w3.org/TR/SVG11/feature#BasicPaintAttribute" #Actually unsupported: stroke-dasharray and stroke-dashoffset.
+			"http://www.w3.org/TR/SVG11/feature#BasicText" #Since v1.1.0.
+			"http://www.w3.org/TR/SVG11/feature#PaintAttribute" #Since v1.1.0.
+			"http://www.w3.org/TR/SVG11/feature#BasicPaintAttribute" #Since v1.1.0.
 			"http://www.w3.org/TR/SVG11/feature#ColorProfile" #Doesn't apply to g-code.
 			"http://www.w3.org/TR/SVG11/feature#Gradient" #Doesn't apply to g-code.
 		}
