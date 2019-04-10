@@ -27,11 +27,58 @@ set(installed_files
 	TravelCommand.py
 	WriteGCode.py
 )
+set(installed_files_freetype
+	__init__.py
+	ft_errors.py
+	ft_structs.py
+	ft_types.py
+	libfreetype.dll
+	libfreetype.dylib
+	raw.py
+)
+set(installed_files_freetype_ft_enums
+	__init__.py
+	ft_curve_tags.py
+	ft_encodings.py
+	ft_face_flags.py
+	ft_fstypes.py
+	ft_glyph_bbox_modes.py
+	ft_glyph_formats.py
+	ft_kerning_modes.py
+	ft_lcd_filters.py
+	ft_load_flags.py
+	ft_load_targets.py
+	ft_open_modes.py
+	ft_outline_flags.py
+	ft_pixel_modes.py
+	ft_render_modes.py
+	ft_stroker_borders.py
+	ft_stroker_linecaps.py
+	ft_stroker_linejoins.py
+	ft_style_flags.py
+	tt_adobe_ids.py
+	tt_apple_ids.py
+	tt_mac_ids.py
+	tt_mac_langids.py
+	tt_ms_ids.py
+	tt_ms_langids.py
+	tt_name_ids.py
+	tt_platforms.py
+)
 set(installed_paths "")
 foreach(f IN LISTS installed_files)
 	list(APPEND installed_paths ${CMAKE_CURRENT_SOURCE_DIR}/${f})
 endforeach()
 list(APPEND installed_paths ${CMAKE_CURRENT_BINARY_DIR}/plugin.json)
+set(installed_paths_freetype "")
+foreach(f IN LISTS installed_files_freetype)
+	list(APPEND installed_paths_freetype ${CMAKE_CURRENT_SOURCE_DIR}/freetype/${f})
+endforeach()
+set(installed_paths_freetype_ft_enums "")
+foreach(f IN LISTS installed_files_freetype_ft_enums)
+	list(APPEND installed_paths_freetype_ft_enums ${CMAKE_CURRENT_SOURCE_DIR}/freetype/ft_enums/${f})
+endforeach()
+
 #Find out where to install this thing.
 if(WIN32)
 	set(cura_directory "$ENV{APPDATA}\\cura")
@@ -54,11 +101,15 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 	set(CMAKE_INSTALL_PREFIX "${cura_directory}/${latest_version}/plugins" CACHE PATH "Location of the Cura plug-ins folder to install this plug-in to." FORCE)
 endif()
 install(FILES ${installed_paths} DESTINATION SVGToolpathReader)
+install(FILES ${installed_paths_freetype} DESTINATION SVGToolpathReader/freetype)
+install(FILES ${installed_paths_freetype_ft_enums} DESTINATION SVGToolpathReader/freetype/ft_enums)
 
 #Packing this into a .curapackage file.
 add_custom_target(pack COMMAND "") #Packs for all supported SDK versions.
 foreach(sdk_version ${SVGTOOLPATHREADER_SUPPORTED_SDKS})
 	file(COPY ${installed_paths} DESTINATION pack${sdk_version}/files/plugins/SVGToolpathReader)
+	file(COPY ${installed_paths_freetype} DESTINATION pack${sdk_version}/files/plugins/SVGToolpathReader/freetype)
+	file(COPY ${installed_paths_freetype_ft_enums} DESTINATION pack${sdk_version}/files/plugins/SVGToolpathReader/freetype/ft_enums)
 	file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/cmake/[Content_Types].xml" DESTINATION pack${sdk_version})
 	file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/cmake/_rels" DESTINATION pack${sdk_version})
 	configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/package.json.in" pack${sdk_version}/package.json)
