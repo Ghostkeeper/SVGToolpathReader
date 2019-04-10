@@ -646,8 +646,45 @@ class Parser:
 		:param transformation: Any transformation matrix to apply to the line.
 		:return: A sequence of commands necessary to print the line.
 		"""
-		start_tx, start_ty = self.apply_transformation(start_x, start_y, transformation)
 		end_tx, end_ty = self.apply_transformation(end_x, end_y, transformation)
+		if self.dasharray:
+			start_tx, start_ty = self.apply_transformation(start_x, start_y, transformation)
+			dx = end_tx - start_tx
+			dy = end_ty - start_ty
+			line_length = math.sqrt(dx * dx + dy * dy)
+
+			while self.dasharray_offset < 0:
+				self.dasharray_offset += self.dasharray_length
+
+			#Find the position in the dasharray that we're at now.
+			cumulative_sum = 0
+			current_index = 0
+			while cumulative_sum + self.dasharray[current_index] < self.dasharray_offset:
+				cumulative_sum += self.dasharray[current_index]
+				current_index = (current_index + 1) % len(self.dasharray)
+			partial_segment = self.dasharray_offset - cumulative_sum #How far along the first segment we'll start.
+			is_extruding = current_index % 2 == 0
+
+			position = 0 #Position along the line segment.
+			direction_x = dx / line_length
+			direction_y = dy / line_length
+			while position < line_length:
+				position += self.dasharray[current_index]
+				if partial_segment > 0:
+					position -= partial_segment
+					partial_segment = 0
+				position = max(min(position, line_length), 0)
+
+				x = start_tx + direction_x * position
+				y = start_ty + direction_y * position
+				if is_extruding:
+					yield ExtrudeCommand.ExtrudeCommand(x, y, line_width)
+				else:
+					yield TravelCommand.TravelCommand(x, y)
+				current_index = (current_index + 1) % len(self.dasharray)
+				is_extruding = not is_extruding
+
+			self.dasharray_offset += line_length
 		yield ExtrudeCommand.ExtrudeCommand(end_tx, end_ty, line_width)
 
 	def extrude_quadratic(self, start_x, start_y, handle_x, handle_y, end_x, end_y, line_width, transformation) -> typing.Generator[ExtrudeCommand.ExtrudeCommand, None, None]:
