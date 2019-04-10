@@ -127,6 +127,7 @@ class Parser:
 			"stroke-dashoffset": is_length,
 			"stroke-width": is_length,
 			"text-decoration-line": lambda s: all([part in {"none", "overline", "underline", "line-through", "initial"} for part in s.split()]),
+			"text-decoration-style": lambda s: s in {"solid", "double", "dotted", "dashed", "wavy", "initial"},
 			"text-transform": lambda s: s in {"none", "capitalize", "uppercase", "lowercase", "initial"}, #Don't include "inherit" again.
 			"transform": tautology
 		}
@@ -876,6 +877,7 @@ class Parser:
 			"stroke-dasharray": "",
 			"stroke-width": "0.35mm",
 			"text-decoration-line": "",
+			"text-decoration-style": "solid",
 			"text-transform": "none",
 			"transform": ""
 		}
@@ -1558,6 +1560,7 @@ class Parser:
 		total_width = char_x
 		decoration_lines = element.attrib.get("text-decoration-line", "")
 		decoration_lines = decoration_lines.split()
+		decoration_style = element.attrib.get("text-decoration-style", "solid")
 		for decoration_line in decoration_lines:
 			if decoration_line == "underline":
 				line_y = y - face.underline_position / 64.0 / 96.0 * 25.4
@@ -1568,8 +1571,35 @@ class Parser:
 			else:
 				continue
 
-			yield from self.travel(x, line_y, transformation)
-			yield from self.extrude_line(x, line_y, x + total_width, line_y, line_width, transformation)
+			if decoration_style in {"solid", "double", "wavy"}:
+				self.dasharray = []
+				self.dasharray_offset = 0
+				self.dasharray_length = 0
+			elif decoration_style == "dotted":
+				self.dasharray = [line_width, line_width]
+				self.dasharray_offset = 0
+				self.dasharray_length = line_width * 2
+			elif decoration_style == "dashed":
+				self.dasharray = [line_width * 3, line_width * 3]
+				self.dasharray_offset = 0
+				self.dasharray_length = line_width * 6
+
+			if decoration_style in {"solid", "dotted", "dashed", "double"}:
+				yield from self.travel(x, line_y, transformation)
+				yield from self.extrude_line(x, line_y, x + total_width, line_y, line_width, transformation)
+			if decoration_style == "double": #Draw an extra line underneath the first one for the double line.
+				yield from self.travel(x, line_y + line_width * 2, transformation)
+				yield from self.extrude_line(x, line_y + line_width * 2, x + total_width, line_y + line_width * 2, line_width, transformation)
+			if decoration_style == "wavy": #Instead of the previous lines, draw the waves.
+				amplitude = ascent / 16
+				yield from self.travel(x, line_y + amplitude, transformation)
+				wave_x = x
+				while wave_x < x + total_width:
+					yield from self.extrude_quadratic(wave_x, line_y + amplitude, min(wave_x + amplitude, wave_x + total_width), line_y + amplitude * 2, min(wave_x + amplitude * 2, wave_x + total_width), line_y + amplitude, line_width, transformation)
+					wave_x += amplitude * 2
+					if wave_x < x + total_width:
+						yield from self.extrude_quadratic(wave_x, line_y + amplitude, min(wave_x + amplitude, wave_x + total_width), line_y, min(wave_x + amplitude * 2, wave_x + total_width), line_y + amplitude, line_width, transformation)
+						wave_x += amplitude * 2
 
 	def travel(self, end_x, end_y, transformation) -> typing.Generator[TravelCommand.TravelCommand, None, None]:
 		"""
