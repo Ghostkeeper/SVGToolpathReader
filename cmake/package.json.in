@@ -9,7 +9,7 @@
     "display_name": "SVG Toolpath Reader",
     "package_id": "SVGToolpathReader",
     "package_type": "plugin",
-    "package_version": "1.0.0",
+    "package_version": "${SVGTOOLPATHREADER_VERSION_MAJOR}.${SVGTOOLPATHREADER_VERSION_MINOR}.${SVGTOOLPATHREADER_VERSION_PATCH}",
     "sdk_version": 5,
     "sdk_version_semver": ${sdk_version},
     "website": "https://github.com/Ghostkeeper/SVGToolpathReader"
