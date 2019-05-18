@@ -5,7 +5,7 @@ This is a plug-in for Cura that allows you to read an SVG file directly as g-cod
 Installation
 ------------
 You can install this plug-in in one of four ways.
-1. **Marketplace:** In Cura, go to the Marketplace and find SVG Toopath Reader in the list. Click it, then click on "install" and restart Cura.
+1. **Marketplace:** In Cura, go to the Marketplace and find SVG Toolpath Reader in the list. Click it, then click on "install" and restart Cura.
 2. **From package:** Go to the [releases](https://github.com/Ghostkeeper/SVGToolpathReader/releases) page to download the latest release. Select the SDK version that fits your version of Cura:
 
    | Cura version | SDK |
