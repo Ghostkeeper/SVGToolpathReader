@@ -262,7 +262,7 @@ def get_start_gcode(min_x, min_y, max_x, max_y) -> str:
 		result += "G0 F15000 X{prime_x} Y{prime_y} Z2\n".format(prime_x=extruder_prime_pos_x, prime_y=extruder_prime_pos_y)
 		result += "G280\n"
 	if retraction_enable:
-		result += "G0 F{speed} E-{distance}".format(speed=retraction_speed * 60, distance=retraction_distance)
+		result += "G0 F{speed} E-{distance}\n".format(speed=retraction_speed * 60, distance=retraction_distance)
 	result += "M107\n" #Fans on.
 	result += "M204 S{acceleration}\n".format(acceleration=acceleration_wall_0)
 	result += "M205 X{jerk} Y{jerk}\n".format(jerk=jerk_wall_0)
