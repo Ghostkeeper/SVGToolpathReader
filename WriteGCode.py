@@ -41,7 +41,7 @@ def write_gcode(commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBu
 	speed_print = extruder_stack.getProperty("speed_print_layer_0", "value")
 	retraction_enable = extruder_stack.getProperty("retraction_enable", "value")
 	retraction_speed = extruder_stack.getProperty("retraction_retract_speed", "value")
-	unretraction_speed = extruder_stack.getProperty("retraction_unretract_speed", "value")
+	unretraction_speed = extruder_stack.getProperty("retraction_prime_speed", "value")
 	retraction_distance = extruder_stack.getProperty("retraction_amount", "value")
 
 	path = []
