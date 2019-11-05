@@ -12,7 +12,7 @@ set(SVGTOOLPATHREADER_PLUGIN_NAME "SVG Toolpath Reader" CACHE STRING "The name o
 set(SVGTOOLPATHREADER_VERSION_MAJOR 1 CACHE STRING "The major version number, indicating a backward compatibility break.")
 set(SVGTOOLPATHREADER_VERSION_MINOR 1 CACHE STRING "The minor version number, indicating a forward compatibility break.")
 set(SVGTOOLPATHREADER_VERSION_PATCH 2 CACHE STRING "The patch version number, indicating an incremental improvement without compatibility break.")
-set(SVGTOOLPATHREADER_SUPPORTED_SDKS "5.0.0;6.0.0" CACHE STRING "List of supported Cura SDK versions.")
+set(SVGTOOLPATHREADER_SUPPORTED_SDKS "5.0.0;6.0.0;7.0.0" CACHE STRING "List of supported Cura SDK versions.")
 
 #Installation.
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/plugin.json.in" plugin.json)
