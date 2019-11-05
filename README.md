@@ -8,14 +8,15 @@ You can install this plug-in in one of four ways.
 1. **Marketplace:** In Cura, go to the Marketplace and find SVG Toolpath Reader in the list. Click it, then click on "install" and restart Cura.
 2. **From package:** Go to the [releases](https://github.com/Ghostkeeper/SVGToolpathReader/releases) page to download the latest release. Select the SDK version that fits your version of Cura:
 
-   | Cura version | SDK |
-   |--------------|-----|
-   | 3.5          | 5   |
-   | 3.6          | 5   |
-   | 4.0          | 6   |
-   | 4.1          | 6   |
-   | 4.2          | 6   |
-   | 4.3          | 6   |
+   | Cura version | SDK   |
+   |--------------|-------|
+   | 3.5          | 5.0.0 |
+   | 3.6          | 5.0.0 |
+   | 4.0          | 6.0.0 |
+   | 4.1          | 6.0.0 |
+   | 4.2          | 6.0.0 |
+   | 4.3          | 6.0.0 |
+   | 4.4          | 7.0.0 |
 
    Drag that package file onto the Cura window, then restart Cura.
 3. **Building packages:** Download the latest source code [from Github](https://github.com/Ghostkeeper/SVGToolpathReader/archive/master.zip), then in a terminal run `cmake . && make pack` to create a .curapackage file for each supported SDK version. Similar to the previous option, select the SDK version that fits your version of Cura and drag it onto the Cura window, then restart Cura.
