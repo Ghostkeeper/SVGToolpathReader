@@ -678,8 +678,8 @@ class Parser:
 					partial_segment = 0
 				position = max(min(position, line_length), 0)
 
-				x = start_tx + direction_x * position
-				y = start_ty + direction_y * position
+				x = start_tx + direction_x * position - self.viewport_x * self.unit_w
+				y = start_ty + direction_y * position - self.viewport_y * self.unit_h
 				if is_extruding:
 					yield ExtrudeCommand.ExtrudeCommand(x, y, line_width)
 				else:
@@ -688,7 +688,7 @@ class Parser:
 				is_extruding = not is_extruding
 
 			self.dasharray_offset += line_length
-		yield ExtrudeCommand.ExtrudeCommand(end_tx, end_ty, line_width)
+		yield ExtrudeCommand.ExtrudeCommand(end_tx - self.viewport_x * self.unit_w, end_ty - self.viewport_y * self.unit_h, line_width)
 
 	def extrude_quadratic(self, start_x, start_y, handle_x, handle_y, end_x, end_y, line_width, transformation) -> typing.Generator[ExtrudeCommand.ExtrudeCommand, None, None]:
 		"""
@@ -1622,4 +1622,4 @@ class Parser:
 		:return: A sequence of commands necessary to make the travel move.
 		"""
 		end_tx, end_ty = self.apply_transformation(end_x, end_y, transformation)
-		yield TravelCommand.TravelCommand(x=end_tx, y=end_ty)
+		yield TravelCommand.TravelCommand(x=end_tx - self.viewport_x * self.unit_w, y=end_ty - self.viewport_y * self.unit_h)
