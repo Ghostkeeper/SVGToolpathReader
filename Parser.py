@@ -873,6 +873,7 @@ class Parser:
 
 		#Put all CSS attributes in the attrib dict, even if they are not normally available in SVG. It'll be easier to parse there if we keep it separated.
 		tracked_css = { #For each property, also their defaults.
+			"font-family": "serif",
 			"font-size": "12pt",
 			"font-style": "normal",
 			"font-weight": "400",
