@@ -886,6 +886,8 @@ class Parser:
 			"transform": ""
 		}
 		for attribute in tracked_css:
+			if attribute in element.attrib and attribute not in css:
+				css[attribute] = element.attrib[attribute] #CSS overrides the separate attributes, but we still want to inherit the separate attributes.
 			element.attrib[attribute] = css.get(attribute, tracked_css[attribute])
 
 		#Pass CSS on to children.
