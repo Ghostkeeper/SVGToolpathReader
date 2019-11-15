@@ -122,6 +122,7 @@ class Parser:
 		attribute_validate = { #For each supported attribute, a predicate to validate whether it is correctly formed.
 			"font-family": tautology,
 			"font-weight": is_float,
+			"font-size": is_length,
 			"font-style": lambda s: s in {"normal", "italic", "oblique", "initial"}, #Don't include "inherit" since we want it to inherit then as if not set.
 			"stroke-dasharray": is_list_of_lengths,
 			"stroke-dashoffset": is_length,
