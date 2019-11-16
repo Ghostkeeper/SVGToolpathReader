@@ -4,8 +4,15 @@
 #This plug-in is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for details.
 #You should have received a copy of the GNU Affero General Public License along with this plug-in. If not, see <https://gnu.org/licenses/>.
 
+import collections
 import re  # For parsing the CSS source.
 import UM.Logger  # Reporting parsing failures.
+
+CSSAttribute = collections.namedtuple("CSSAttribute", [
+	"name",  # The name of the attribute.
+	"value",  # The current value of the attribute.
+	"validate",  # A validation predicate for the attribute.
+])
 
 class CSS:
 	"""
@@ -19,18 +26,30 @@ class CSS:
 	def __init__(self) -> None:
 		"""
 		Creates a new set of CSS attributes.
+
+		The attributes are initialised to their defaults.
 		"""
-		self.font_family = "serif"
-		self.font_size = "12pt"
-		self.font_weight = "400"
-		self.font_style = "normal"
-		self.stroke_dasharray = ""
-		self.stroke_width = "0"
-		self.text_decoration = ""
-		self.text_decoration_line = ""
-		self.text_decoration_style = "solid"
-		self.text_transform = "none"
-		self.transform = ""
+		# Some re-usable validation functions
+		is_float = lambda s: re.fullmatch(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", s) is not None
+		tautology = lambda s: True
+		is_list_of_lengths = lambda s: re.fullmatch(r"([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?(cap|ch|em|ex|ic|lh|rem|rlh|vh|vw|vi|vb|vmin|vmax|px|cm|mm|Q|in|pc|pt|%)?[,\s])*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)?(cap|ch|em|ex|ic|lh|rem|rlh|vh|vw|vi|vb|vmin|vmax|px|cm|mm|Q|in|pc|pt|%)?", s) is not None
+		is_length = lambda s: re.fullmatch(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?(cap|ch|em|ex|ic|lh|rem|rlh|vh|vw|vi|vb|vmin|vmax|px|cm|mm|Q|in|pc|pt|%)?", s)
+
+		self.attributes = {
+			# Name                   Name again                            Default   Validation function
+			"font-family":           CSSAttribute("font-family",           "serif",  tautology),
+			"font-size":             CSSAttribute("font-size",             "12pt",   is_length),
+			"font-style":            CSSAttribute("font-style",            "normal", lambda s: s in {"normal", "italic", "oblique", "initial"}),  # Don't include "inherit" since we want it to inherit then as if not set.
+			"font-weight":           CSSAttribute("font-weight",           "400",    is_float),
+			"stroke-dasharray":      CSSAttribute("stroke-dasharray",      "",       is_list_of_lengths),
+			"stroke-dashoffset":     CSSAttribute("stroke-dashoffset",     "0",      is_length),
+			"stroke-width":          CSSAttribute("stroke-width",          "0",      is_length),
+			"text-decoration":       CSSAttribute("text-decoration",       "",       tautology),  # Not going to do any sort of validation on this one since it has all the colours and that's just way too complex.
+			"text-decoration-line":  CSSAttribute("text-decoration-line",  "",       lambda s: all([part in {"none", "overline", "underline", "line-through", "initial"} for part in s.split()])),
+			"text-decoration-style": CSSAttribute("text-decoration-style", "solid",  lambda s: s in {"solid", "double", "dotted", "dashed", "wavy", "initial"}),
+			"text-transform":        CSSAttribute("text-transform",        "none",   lambda s: s in {"none", "capitalize", "uppercase", "lowercase", "initial"}),  # Don't include "inherit" again.
+			"transform":             CSSAttribute("transform",             "",       tautology)  # Not going to do any sort of validation on this one because all the transformation functions make it very complex.
+		}
 
 	def parse(self, css) -> None:
 		"""
@@ -39,25 +58,6 @@ class CSS:
 		The results are stored in this CSS instance.
 		:param css: The piece of CSS to parse.
 		"""
-		is_float = lambda s: re.fullmatch(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", s) is not None
-		tautology = lambda s: True
-		is_list_of_lengths = lambda s: re.fullmatch(r"([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?(cap|ch|em|ex|ic|lh|rem|rlh|vh|vw|vi|vb|vmin|vmax|px|cm|mm|Q|in|pc|pt|%)?[,\s])*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)?(cap|ch|em|ex|ic|lh|rem|rlh|vh|vw|vi|vb|vmin|vmax|px|cm|mm|Q|in|pc|pt|%)?", s) is not None
-		is_length = lambda s: re.fullmatch(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?(cap|ch|em|ex|ic|lh|rem|rlh|vh|vw|vi|vb|vmin|vmax|px|cm|mm|Q|in|pc|pt|%)?", s)
-		attribute_validate = {  # For each supported attribute, a predicate to validate whether it is correctly formed.
-			"font-family": tautology,
-			"font-weight": is_float,
-			"font-size": is_length,
-			"font-style": lambda s: s in {"normal", "italic", "oblique", "initial"},  # Don't include "inherit" since we want it to inherit then as if not set.
-			"stroke-dasharray": is_list_of_lengths,
-			"stroke-dashoffset": is_length,
-			"stroke-width": is_length,
-			"text-decoration": tautology,  # Not going to do any sort of parsing on this one since it has all the colours and that's just way too complex.
-			"text-decoration-line": lambda s: all([part in {"none", "overline", "underline", "line-through", "initial"} for part in s.split()]),
-			"text-decoration-style": lambda s: s in {"solid", "double", "dotted", "dashed", "wavy", "initial"},
-			"text-transform": lambda s: s in {"none", "capitalize", "uppercase", "lowercase", "initial"},  # Don't include "inherit" again.
-			"transform": tautology  # Not going to do any sort of parsing on this one because all the transformation functions make it very complex.
-		}
-
 		pieces = css.split(";")
 		for piece in pieces:
 			piece = piece.strip()
@@ -66,10 +66,10 @@ class CSS:
 				continue
 			attribute = piece[:piece.index(":")]
 			value = piece[piece.index(":") + 1]
-			if attribute not in attribute_validate:
+			if attribute not in self.attributes:
 				UM.Logger.Logger.log("w", "Unknown CSS attribute {attribute}".format(attribute=attribute))
 				continue
-			if not attribute_validate[attribute](value):
+			if not self.attributes[attribute].validate(value):
 				UM.Logger.Logger.log("w", "Invalid value for CSS attribute {attribute}: {value}".format(attribute=attribute, value=value))
 				continue
-			#TODO: Store the value.
+			self.attributes[attribute].value = value
