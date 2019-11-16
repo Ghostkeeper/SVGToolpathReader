@@ -5,6 +5,7 @@
 #You should have received a copy of the GNU Affero General Public License along with this plug-in. If not, see <https://gnu.org/licenses/>.
 
 import re  # For parsing the CSS source.
+import UM.Logger  # Reporting parsing failures.
 
 class CSS:
 	"""
