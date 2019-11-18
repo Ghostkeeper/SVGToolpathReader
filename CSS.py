@@ -4,8 +4,9 @@
 #This plug-in is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for details.
 #You should have received a copy of the GNU Affero General Public License along with this plug-in. If not, see <https://gnu.org/licenses/>.
 
-import collections
+import collections  # For the named tuple.
 import re  # For parsing the CSS source.
+import typing
 import UM.Logger  # Reporting parsing failures.
 
 CSSAttribute = collections.namedtuple("CSSAttribute", [
@@ -50,6 +51,8 @@ class CSS:
 			"text-transform":        CSSAttribute("text-transform",        "none",   lambda s: s in {"none", "capitalize", "uppercase", "lowercase", "initial"}),  # Don't include "inherit" again.
 			"transform":             CSSAttribute("transform",             "",       tautology)  # Not going to do any sort of validation on this one because all the transformation functions make it very complex.
 		}
+		self.dasharray = []
+		self.dasharray_length = 0
 
 	def parse(self, css) -> None:
 		"""
@@ -73,3 +76,28 @@ class CSS:
 				UM.Logger.Logger.log("w", "Invalid value for CSS attribute {attribute}: {value}".format(attribute=attribute, value=value))
 				continue
 			self.attributes[attribute].value = value
+
+	def convert_dasharray(self, dasharray) -> None:
+		"""
+		Parses a stroke-dasharray property out of CSS.
+
+		The length elements are converted into millimetres for extrusion.
+
+		The result is stored in self.dasharray, to be used with the next drawn
+		lines. Also, the total length is computed and stored in
+		self.dasharray_length for re-use.
+		:param dasharray: A stroke-dasharray property value.
+		"""
+		dasharray = dasharray.replace(",", " ")
+		length_list = dasharray.split()
+		self.dasharray = []
+		self.dasharray_length = 0
+		for length in length_list:
+			length_mm = self.convert_length(length)  # TODO: Move this to CSS class too.
+			if length_mm < 0:
+				continue  # Invalid. Ignore this one.
+			self.dasharray.append(length_mm)
+			self.dasharray_length += length_mm
+		if len(self.dasharray) % 2 == 1:  # Double the sequence so that every segment is the same w.r.t. which is extruded and which is travelled.
+			self.dasharray *= 2
+			self.dasharray_length *= 2
