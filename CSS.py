@@ -24,12 +24,15 @@ class CSS:
 	parsing the (supported) CSS attributes.
 	"""
 
-	def __init__(self) -> None:
+	def __init__(self, parser) -> None:
 		"""
 		Creates a new set of CSS attributes.
 
 		The attributes are initialised to their defaults.
+		:param parser: The parser that is currently parsing a document.
 		"""
+		self.parser = parser
+
 		# Some re-usable validation functions
 		is_float = lambda s: re.fullmatch(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", s) is not None
 		tautology = lambda s: True
@@ -93,7 +96,7 @@ class CSS:
 		self.dasharray = []
 		self.dasharray_length = 0
 		for length in length_list:
-			length_mm = self.convert_length(length)  # TODO: Move this to CSS class too.
+			length_mm = self.convert_length(length)
 			if length_mm < 0:
 				continue  # Invalid. Ignore this one.
 			self.dasharray.append(length_mm)
@@ -101,3 +104,62 @@ class CSS:
 		if len(self.dasharray) % 2 == 1:  # Double the sequence so that every segment is the same w.r.t. which is extruded and which is travelled.
 			self.dasharray *= 2
 			self.dasharray_length *= 2
+
+	def convert_length(self, dimension, vertical=False, parent_size=None) -> float:
+		"""
+		Converts a CSS dimension to millimetres.
+
+		For pixels, this assumes a resolution of 96 dots per inch.
+		:param dimension: A CSS dimension.
+		:param vertical: The dimension is a vertical one, so it should be taken
+		relative to other vertical dimensions for some units, such as the
+		vertical size of the parent if using percentages.
+		:param parent_size: The size in millimetres of the element that contains
+		the element that we're getting the dimension for. If ``None``, this will
+		be set to the printer's width.
+		:return: How many millimetres long that dimension is.
+		"""
+		number = re.match(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", dimension)
+		if not number:
+			return 0
+		number = number.group(0)
+		unit = dimension[len(number):].strip().lower()
+		number = float(number)
+
+		if unit == "mm":
+			return number
+		elif unit == "px":
+			return number / 96 * 25.4
+		elif unit == "cm":
+			return number * 10
+		elif unit == "q":
+			return number / 4
+		elif unit == "in":
+			return number * 25.4
+		elif unit == "pc":
+			return number * 12 / 72 * 25.4
+		elif unit == "pt":
+			return number / 72 * 25.4
+
+		elif unit == "%":
+			if parent_size is None:
+				if vertical:
+					parent_size = self.parser.image_h
+				else:
+					parent_size = self.parser.image_w
+			return number / 100 * parent_size
+		elif unit == "vh" or unit == "vb":
+			return number / 100 * self.parser.image_w
+		elif unit == "vw" or unit == "vi":
+			return number / 100 * self.parser.image_h
+		elif unit == "vmin":
+			return number / 100 * min(self.parser.image_w, self.parser.image_h)
+		elif unit == "vmax":
+			return number / 100 * max(self.parser.image_w, self.parser.image_h)
+
+		else: #Assume viewport-units.
+			if vertical:
+				return number * self.parser.unit_h
+			else:
+				return number * self.parser.unit_w
+		#TODO: Implement font-relative sizes.
