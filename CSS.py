@@ -163,3 +163,19 @@ class CSS:
 			else:
 				return number * self.parser.unit_w
 		#TODO: Implement font-relative sizes.
+
+	def convert_float(self, dictionary, attribute, default: float) -> float:
+		"""
+		Parses an attribute as float, if possible.
+
+		If impossible or missing, this returns the default.
+		:param dictionary: The attributes dictionary to get the attribute from.
+		:param attribute: The attribute to get from the dictionary.
+		:param default: The default value for this attribute, in case the
+		value is missing or invalid.
+		:return: A floating point number that was in the attribute, or the default.
+		"""
+		try:
+			return float(dictionary.get(attribute, default))
+		except ValueError: #Not parsable as float.
+			return default
