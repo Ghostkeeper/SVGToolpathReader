@@ -157,7 +157,7 @@ class CSS:
 		elif unit == "vmax":
 			return number / 100 * max(self.parser.image_w, self.parser.image_h)
 
-		else: #Assume viewport-units.
+		else:  # Assume viewport-units.
 			if vertical:
 				return number * self.parser.unit_h
 			else:
@@ -177,5 +177,31 @@ class CSS:
 		"""
 		try:
 			return float(dictionary.get(attribute, default))
-		except ValueError: #Not parsable as float.
+		except ValueError:  # Not parsable as float.
 			return default
+
+	def convert_font_family(self, font_family) -> str:
+		"""
+		Parses a font-family, converting it to the file name of a single font
+		that is installed on the system.
+		:param font_family: The font-family property from CSS.
+		:return: The file name of a font that is installed on the system that
+		most closely approximates the desired font family.
+		"""
+		fonts = font_family.split(",")
+		fonts = [font.strip() for font in fonts]
+
+		self.parser.detect_fonts_thread.join()  # All fonts need to be in at this point.
+
+		for font in fonts:
+			if font in self.parser.safe_fonts:
+				font = self.parser.safe_fonts[font]
+			for candidate in self.parser.system_fonts:
+				if font.lower() == candidate.lower():  # Case-insensitive matching.
+					return candidate
+		UM.Logger.Logger.log("w", "Desired fonts not available on the system: {family}".format(family=font_family))
+		if self.parser.safe_fonts["serif"] in self.parser.system_fonts:
+			return self.parser.safe_fonts["serif"]
+		if self.parser.system_fonts:
+			return next(iter(self.parser.system_fonts))  # Take an arbitrary font that is available. Running out of options, here!
+		return "Noto Sans"  # Default font of Cura. Hopefully that gets installed somewhere.
