@@ -205,3 +205,26 @@ class CSS:
 		if self.parser.system_fonts:
 			return next(iter(self.parser.system_fonts))  # Take an arbitrary font that is available. Running out of options, here!
 		return "Noto Sans"  # Default font of Cura. Hopefully that gets installed somewhere.
+
+	def convert_points(self, points) -> typing.Generator[typing.Tuple[float, float], None, None]:
+		"""
+		Parses a points attribute, turning it into a list of coordinate pairs.
+
+		If there is a syntax error, that part of the points will get ignored.
+		Other parts might still be included.
+		:param points: A series of points.
+		:return: A list of x,y pairs.
+		"""
+		points = points.replace(",", " ")
+		while "  " in points:
+			points = points.replace("  ", " ")
+		points = points.strip()
+		points = points.split()
+		if len(points) % 2 != 0:  # If we have an odd number of points, leave out the last.
+			points = points[:-1]
+
+		for x, y in (points[i:i + 2] for i in range(0, len(points), 2)):
+			try:
+				yield float(x), float(y)
+			except ValueError:  # Not properly formatted floats.
+				continue
