@@ -1,8 +1,8 @@
-#Cura plug-in to read SVG files as toolpaths.
-#Copyright (C) 2019 Ghostkeeper
-#This plug-in is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-#This plug-in is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for details.
-#You should have received a copy of the GNU Affero General Public License along with this plug-in. If not, see <https://gnu.org/licenses/>.
+# Cura plug-in to read SVG files as toolpaths.
+# Copyright (C) 2020 Ghostkeeper
+# This plug-in is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+# This plug-in is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for details.
+# You should have received a copy of the GNU Affero General Public License along with this plug-in. If not, see <https://gnu.org/licenses/>.
 
 import cura.Scene.CuraSceneNode #To create a mesh node in the scene as result of our read.
 import cura.Scene.GCodeListDecorator #To store g-code in the mesh so that you could print it.
@@ -13,6 +13,7 @@ import UM.Mesh.MeshReader #The class we're extending.
 import UM.MimeTypeDatabase #Register the SVG MIME type.
 import xml.etree.ElementTree #To read SVG files.
 
+from . import Configuration
 from . import Parser #To parse the SVG.
 from . import WriteGCode #To serialise the commands as g-code.
 
@@ -28,6 +29,17 @@ class SVGToolpathReader(UM.Mesh.MeshReader.MeshReader):
 		super().__init__()
 		self._supported_extensions = ["svg"]
 		UM.MimeTypeDatabase.MimeTypeDatabase.addMimeType(UM.MimeTypeDatabase.MimeType(name="image/svg+xml", comment="Scalable Vector Graphics", suffixes=self._supported_extensions))
+		self.config_dialogue = Configuration.Configuration()
+
+	def preRead(self, file_name, *args, **kwargs) -> UM.Mesh.MeshReader.MeshReader.PreReadResult:
+		"""
+		Handles the configuration before we start reading the SVG file.
+
+		This will display a dialogue to a user and wait for the user to
+		respond.
+		:param file_name: The path to the file to read.
+		"""
+		return self.config_dialogue.prompt(file_name)
 
 	def _read(self, file_name) -> cura.Scene.CuraSceneNode.CuraSceneNode:
 		"""
