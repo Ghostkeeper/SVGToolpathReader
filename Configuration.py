@@ -4,7 +4,9 @@
 # This plug-in is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for details.
 # You should have received a copy of the GNU Affero General Public License along with this plug-in. If not, see <https://gnu.org/licenses/>.
 
+import os.path  # To find the QML file to display.
 import PyQt5.QtCore  # To display an interface to the user.
+import UM.Application
 import UM.Mesh.MeshReader  # To return the correct prompt response for the preread.
 
 class Configuration(PyQt5.QtCore.QObject):
@@ -14,6 +16,15 @@ class Configuration(PyQt5.QtCore.QObject):
 
 	You can show the dialogue with the ``prompt`` function.
 	"""
+
+	def __init__(self) -> None:
+		"""
+		Creates the configuration object.
+
+		This doesn't create the actual UI yet. That will be created lazily by
+		the ``prompt`` function.
+		"""
+		self.ui_element = None
 
 	def prompt(self, file_name) -> UM.Mesh.MeshReader.MeshReader.PreReadResult:
 		"""
@@ -26,4 +37,13 @@ class Configuration(PyQt5.QtCore.QObject):
 		or there was an error.
 		"""
 		print("Test prompt!", file_name)
+		if self.ui_element is None:
+			self.create_ui()
 		return UM.Mesh.MeshReader.MeshReader.PreReadResult.accepted
+
+	def create_ui(self):
+		"""
+		Loads the dialogue element from the QML file.
+		"""
+		application = UM.Application.Application.getInstance()
+		qml_path = os.path.join(application.getPluginRegistry().getPluginPath("SVGToolpathReader"), "")
