@@ -58,7 +58,7 @@ class SVGToolpathReader(UM.Mesh.MeshReader.MeshReader):
 		parser.defaults(document.getroot())
 		parser.inheritance(document.getroot())
 		commands = parser.parse(document.getroot())
-		gcode, layer_data_builder = WriteGCode.write_gcode(commands)
+		gcode, layer_data_builder = WriteGCode.write_gcode(self.config_dialogue, commands)
 
 		scene_node = cura.Scene.CuraSceneNode.CuraSceneNode()
 
