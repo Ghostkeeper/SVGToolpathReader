@@ -10,10 +10,15 @@ import QtQuick.Controls 2.1
 import UM 1.1 as UM
 
 UM.Dialog {
+	id: svg_reader_config_dialogue
 	minimumWidth: 350 * screenScaleFactor
 	minimumHeight: 100 * screenScaleFactor
 
 	title: "Load SVG image as toolpath"
+
+	onRejected: manager.cancel()
+	onClosing: reject()
+	onAccepted: manager.confirm()
 
 	Item { //Row for height (mm).
 		anchors {
@@ -46,7 +51,7 @@ UM.Dialog {
 		Button {
 			anchors.right: parent.right
 			text: "OK"
-			onClicked: manager.confirm()
+			onClicked: svg_reader_config_dialogue.accept()
 		}
 	}
 }

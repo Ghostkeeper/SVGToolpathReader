@@ -64,7 +64,7 @@ class Configuration(PyQt5.QtCore.QObject):
 		application = UM.Application.Application.getInstance()
 		qml_path = os.path.join(application.getPluginRegistry().getPluginPath("SVGToolpathReader"), "ConfigurationDialogue.qml")
 		self.ui_element = application.createQmlComponent(qml_path, {"manager": self})
-		self.ui_element.setFlags(self.ui_element.flags() & ~PyQt5.QtCore.Qt.WindowCloseButtonHint & ~PyQt5.QtCore.Qt.WindowMinimizeButtonHint & ~PyQt5.QtCore.Qt.WindowMaximizeButtonHint)
+		self.ui_element.setFlags(self.ui_element.flags() & ~PyQt5.QtCore.Qt.WindowMinimizeButtonHint & ~PyQt5.QtCore.Qt.WindowMaximizeButtonHint)
 		self.ui_element.show()
 
 	@PyQt5.QtCore.pyqtSlot()
@@ -77,6 +77,14 @@ class Configuration(PyQt5.QtCore.QObject):
 		"""
 		self._status = UM.Mesh.MeshReader.MeshReader.PreReadResult.accepted
 		self.ui_element.close()
+		self._ui_lock.release()
+
+	@PyQt5.QtCore.pyqtSlot()
+	def cancel(self):
+		"""
+		Triggered when the user closes the dialogue rather than clicking OK.
+		"""
+		self._status = UM.Mesh.MeshReader.MeshReader.PreReadResult.cancelled
 		self._ui_lock.release()
 
 	def _prompt(self) -> UM.Mesh.MeshReader.MeshReader.PreReadResult:
