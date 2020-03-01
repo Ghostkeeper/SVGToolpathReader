@@ -15,12 +15,13 @@ UM.Dialog {
 
 	title: "Load SVG image as toolpath"
 
-	Item {
+	Item { //Row for height (mm).
 		anchors {
 			left: parent.left
 			right: parent.right
 		}
 		height: childrenRect.height
+
 		Label {
 			text: "Height (mm)"
 			anchors.verticalCenter: heightField.verticalCenter
@@ -31,6 +32,20 @@ UM.Dialog {
 			validator: IntValidator {
 				bottom: 0
 			}
+		}
+	}
+
+	Item { //Row for buttons.
+		anchors {
+			left: parent.left
+			right: parent.right
+			bottom: parent.bottom
+		}
+		height: childrenRect.height
+
+		Button {
+			anchors.right: parent.right
+			text: "OK"
 		}
 	}
 }
