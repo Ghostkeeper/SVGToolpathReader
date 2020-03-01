@@ -4,11 +4,13 @@
 //This plug-in is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for details.
 //You should have received a copy of the GNU Affero General Public License along with this plug-in. If not, see <https://gnu.org/licenses/>.
 
-import UM 1.1
+import QtQuick.Controls 1.1
+
+import UM 1.1 as UM
 
 UM.Dialog {
-	minimumWidth = 350 * screenScaleFactor
-	minimumHeight = 100 * screenScaleFactor
+	minimumWidth: 350 * screenScaleFactor
+	minimumHeight: 100 * screenScaleFactor
 
 	Label {
 		text: "Test"
