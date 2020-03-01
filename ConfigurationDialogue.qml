@@ -46,6 +46,7 @@ UM.Dialog {
 		Button {
 			anchors.right: parent.right
 			text: "OK"
+			onClicked: manager.confirm()
 		}
 	}
 }

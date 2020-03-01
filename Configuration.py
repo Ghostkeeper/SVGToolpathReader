@@ -52,6 +52,7 @@ class Configuration(PyQt5.QtCore.QObject):
 		or there was an error.
 		"""
 		self._file_name = file_name
+		self._ui_lock.acquire()
 		self._show_ui_trigger.emit()
 		self._wait_for_ui()
 		return self._status
@@ -66,6 +67,18 @@ class Configuration(PyQt5.QtCore.QObject):
 		self.ui_element.setFlags(self.ui_element.flags() & ~PyQt5.QtCore.Qt.WindowCloseButtonHint & ~PyQt5.QtCore.Qt.WindowMinimizeButtonHint & ~PyQt5.QtCore.Qt.WindowMaximizeButtonHint)
 		self.ui_element.show()
 
+	@PyQt5.QtCore.pyqtSlot()
+	def confirm(self):
+		"""
+		Triggered when the user clicks the OK button in the interface.
+
+		This allows the SVG file to be read with the settings written in that
+		interface.
+		"""
+		self._status = UM.Mesh.MeshReader.MeshReader.PreReadResult.accepted
+		self.ui_element.close()
+		self._ui_lock.release()
+
 	def _prompt(self) -> UM.Mesh.MeshReader.MeshReader.PreReadResult:
 		"""
 		Actually asks the user how he'd like to read the file.
@@ -79,7 +92,6 @@ class Configuration(PyQt5.QtCore.QObject):
 		print("Test prompt!", self._file_name)
 		if self.ui_element is None:
 			self.create_ui()
-		self._ui_lock.acquire()
 		return UM.Mesh.MeshReader.MeshReader.PreReadResult.accepted
 
 	def _wait_for_ui(self):
