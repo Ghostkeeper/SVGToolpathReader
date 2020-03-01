@@ -86,9 +86,9 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 			if isinstance(command, TravelCommand.TravelCommand):
 				# Since SVG has positive Y going down but g-code has positive Y going up, we need to invert the Y axis.
 				if not machine_center_is_zero:
-					command.y = machine_depth - command.y
+					command_y = machine_depth - command.y
 				else:
-					command.y = -command.y
+					command_y = -command.y
 
 				gcode = ""
 				if not is_retracted and retraction_enable:
@@ -100,8 +100,8 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 					min_x = min(min_x, x)
 					max_x = max(max_x, x)
 					gcode += " X{x}".format(x=x)
-				if command.y != y:
-					y = command.y
+				if command_y != y:
+					y = command_y
 					min_y = min(min_y, y)
 					max_y = max(max_y, y)
 					gcode += " Y{y}".format(y=y)
@@ -115,11 +115,11 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 			elif isinstance(command, ExtrudeCommand.ExtrudeCommand):
 				# Since SVG has positive Y going down but g-code has positive Y going up, we need to invert the Y axis.
 				if not machine_center_is_zero:
-					command.y = machine_depth - command.y
+					command_y = machine_depth - command.y
 				else:
-					command.y = -command.y
+					command_y = -command.y
 
-				distance = math.sqrt((command.x - x) * (command.x - x) + (command.y - y) * (command.y - y))
+				distance = math.sqrt((command.x - x) * (command.x - x) + (command_y - y) * (command_y - y))
 				mm3 = distance * layer_thicknesses[layer_nr] * command.line_width * material_flow
 				delta_e = mm3 if is_volumetric else (mm3 / (math.pi * material_diameter * material_diameter / 4))
 
@@ -133,8 +133,8 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 					min_x = min(min_x, x)
 					max_x = max(max_x, x)
 					gcode += " X{x}".format(x=x)
-				if command.y != y:
-					y = command.y
+				if command_y != y:
+					y = command_y
 					min_y = min(min_y, y)
 					max_y = max(max_y, y)
 					gcode += " Y{y}".format(y=y)
