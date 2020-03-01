@@ -79,6 +79,7 @@ class Configuration(PyQt5.QtCore.QObject):
 		print("Test prompt!", self._file_name)
 		if self.ui_element is None:
 			self.create_ui()
+		self._ui_lock.acquire()
 		return UM.Mesh.MeshReader.MeshReader.PreReadResult.accepted
 
 	def _wait_for_ui(self):
