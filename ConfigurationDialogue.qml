@@ -17,7 +17,6 @@ UM.Dialog {
 	title: "Load SVG image as toolpath"
 
 	onRejected: manager.cancel()
-	onClosing: reject()
 	onAccepted: manager.confirm()
 
 	Item { //Row for height (mm).
@@ -47,6 +46,12 @@ UM.Dialog {
 			bottom: parent.bottom
 		}
 		height: childrenRect.height
+
+		Button {
+			anchors.left: parent.left
+			text: "Cancel"
+			onClicked: svg_reader_config_dialogue.rejected()
+		}
 
 		Button {
 			anchors.right: parent.right
