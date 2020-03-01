@@ -40,6 +40,7 @@ class Configuration(PyQt5.QtCore.QObject):
 		self._ui_lock = threading.Lock()
 		self._status = UM.Mesh.MeshReader.MeshReader.PreReadResult.failed
 		self._show_ui_trigger.connect(self._prompt)
+		self._height = 0.1
 
 	def prompt(self, file_name) -> UM.Mesh.MeshReader.MeshReader.PreReadResult:
 		"""
@@ -62,6 +63,8 @@ class Configuration(PyQt5.QtCore.QObject):
 		Loads the dialogue element from the QML file.
 		"""
 		application = UM.Application.Application.getInstance()
+
+		self._height = application.getGlobalContainerStack().getProperty("layer_height_0", "value")  # First time showing this dialogue, use one layer as height.
 		qml_path = os.path.join(application.getPluginRegistry().getPluginPath("SVGToolpathReader"), "ConfigurationDialogue.qml")
 		self.ui_element = application.createQmlComponent(qml_path, {"manager": self})
 		self.ui_element.setFlags(self.ui_element.flags() & ~PyQt5.QtCore.Qt.WindowCloseButtonHint & ~PyQt5.QtCore.Qt.WindowMinimizeButtonHint & ~PyQt5.QtCore.Qt.WindowMaximizeButtonHint)
@@ -87,6 +90,18 @@ class Configuration(PyQt5.QtCore.QObject):
 		self.ui_element.close()
 		self._ui_lock.release()
 
+	heightChanged = PyQt5.QtCore.pyqtSignal()
+
+	@PyQt5.QtCore.pyqtSlot(int)
+	def setHeight(self, height):
+		if height != self._height:
+			self._height = height
+			self.heightChanged.emit()
+
+	@PyQt5.QtCore.pyqtProperty(float, notify=heightChanged, fset=setHeight)
+	def height(self):
+		return self._height
+
 	def _prompt(self) -> UM.Mesh.MeshReader.MeshReader.PreReadResult:
 		"""
 		Actually asks the user how he'd like to read the file.
@@ -97,7 +112,6 @@ class Configuration(PyQt5.QtCore.QObject):
 		:return: The result of the dialogue, whether it is accepted, declined
 		or there was an error.
 		"""
-		print("Test prompt!", self._file_name)
 		if self.ui_element is None:
 			self.create_ui()
 		self.ui_element.show()

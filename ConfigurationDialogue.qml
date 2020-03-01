@@ -32,10 +32,13 @@ UM.Dialog {
 		}
 		TextField {
 			id: heightField
+			selectByMouse: true
 			anchors.right: parent.right
 			validator: IntValidator {
 				bottom: 0
 			}
+			text: manager.height
+			onEditingFinished: manager.height = text
 		}
 	}
 
