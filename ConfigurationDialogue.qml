@@ -34,7 +34,7 @@ UM.Dialog {
 			id: heightField
 			selectByMouse: true
 			anchors.right: parent.right
-			validator: IntValidator {
+			validator: DoubleValidator {
 				bottom: 0
 			}
 			text: manager.height
