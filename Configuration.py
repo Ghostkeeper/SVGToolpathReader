@@ -65,7 +65,6 @@ class Configuration(PyQt5.QtCore.QObject):
 		qml_path = os.path.join(application.getPluginRegistry().getPluginPath("SVGToolpathReader"), "ConfigurationDialogue.qml")
 		self.ui_element = application.createQmlComponent(qml_path, {"manager": self})
 		self.ui_element.setFlags(self.ui_element.flags() & ~PyQt5.QtCore.Qt.WindowCloseButtonHint & ~PyQt5.QtCore.Qt.WindowMinimizeButtonHint & ~PyQt5.QtCore.Qt.WindowMaximizeButtonHint)
-		self.ui_element.show()
 
 	@PyQt5.QtCore.pyqtSlot()
 	def confirm(self):
@@ -101,6 +100,7 @@ class Configuration(PyQt5.QtCore.QObject):
 		print("Test prompt!", self._file_name)
 		if self.ui_element is None:
 			self.create_ui()
+		self.ui_element.show()
 		return UM.Mesh.MeshReader.MeshReader.PreReadResult.accepted
 
 	def _wait_for_ui(self):
