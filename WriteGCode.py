@@ -78,8 +78,8 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 		gcodes.append("G0 Z{z}".format(z=layer_heights[layer_nr]))
 		builder.addLayer(layer_nr)
 		layer = builder.getLayer(layer_nr)
-		layer.setHeight(layer_heights[layer_nr])
-		layer.setThickness(layer_thicknesses[layer_nr])
+		builder.setLayerHeight(layer_nr, layer_heights[layer_nr])
+		builder.setLayerThickness(layer_nr, layer_thicknesses[layer_nr])
 
 		for command in layer_commands:
 			gcode = ";Unknown command of type {typename}!".format(typename=command.__class__.__name__)
@@ -157,7 +157,7 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 			thicknesses = numpy.empty((len(path) - 1, 1), numpy.float32)
 			feedrates = numpy.empty((len(path) - 1, 1), numpy.float32)
 			for i, point in enumerate(path):
-				coordinates[i, :] = [point[0], layer_height_0, point[1]]
+				coordinates[i, :] = [point[0], layer_heights[layer_nr], point[1]]
 				if i > 0:
 					if point[2] == 0:
 						feedrates[i - 1] = speed_travel
