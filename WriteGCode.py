@@ -53,7 +53,6 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 	material_print_temperature = extruder_stack.getProperty("material_print_temperature", "value")
 	magic_spiralize = extruder_stack.getProperty("magic_spiralize", "value") and extruder_stack.getProperty("smooth_spiralized_contours", "value")
 
-	path = []
 	gcodes = []
 	commands = list(commands)
 
@@ -103,6 +102,7 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 		layer = builder.getLayer(layer_nr)
 		builder.setLayerHeight(layer_nr, layer_heights[layer_nr])
 		builder.setLayerThickness(layer_nr, layer_thicknesses[layer_nr])
+		path = []
 
 		current_layer_length = 0  # How much we've extruded this layer (tracked for spiralise).
 		for command in commands:
