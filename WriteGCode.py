@@ -51,9 +51,11 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 	retraction_distance = extruder_stack.getProperty("retraction_amount", "value")
 	material_bed_temperature = extruder_stack.getProperty("material_bed_temperature", "value")
 	material_print_temperature = extruder_stack.getProperty("material_print_temperature", "value")
+	magic_spiralize = extruder_stack.getProperty("magic_spiralize", "value") and extruder_stack.getProperty("smooth_spiralized_contours", "value")
 
 	path = []
 	gcodes = []
+	commands = list(commands)
 
 	x = 0
 	y = 0
@@ -76,9 +78,21 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 		layer_thicknesses.append(layer_height)
 	num_layers += 1
 
+	total_layer_length = 0
+	if magic_spiralize:  # Only calculate the total length if we need to use it for spiralise.
+		spiralize_x = 0  # Track our position.
+		spiralize_y = 0
+		for command in commands:
+			if isinstance(command, TravelCommand.TravelCommand):
+				spiralize_x = command.x
+				spiralize_y = command.y
+			if isinstance(command, ExtrudeCommand.ExtrudeCommand):
+				total_layer_length += math.sqrt((spiralize_x - command.x) * (spiralize_x - command.x) + (spiralize_y - command.y) * (spiralize_y - command.y))  # Pythagoras.
+				spiralize_x = command.x
+				spiralize_y = command.y
+
 	builder = cura.LayerDataBuilder.LayerDataBuilder()
 
-	commands = list(commands)
 	for layer_nr in range(num_layers):
 		gcodes.append("G0 Z{z}".format(z=layer_heights[layer_nr]))
 		if layer_nr == 1:
@@ -89,6 +103,7 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 		builder.setLayerHeight(layer_nr, layer_heights[layer_nr])
 		builder.setLayerThickness(layer_nr, layer_thicknesses[layer_nr])
 
+		current_layer_length = 0  # How much we've extruded this layer (tracked for spiralise).
 		for command in commands:
 			gcode = ";Unknown command of type {typename}!".format(typename=command.__class__.__name__)
 			if isinstance(command, TravelCommand.TravelCommand):
@@ -135,6 +150,8 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 					command_y = -command.y
 
 				distance = math.sqrt((command.x - x) * (command.x - x) + (command_y - y) * (command_y - y))
+				if magic_spiralize:
+					current_layer_length += distance
 				if layer_nr == 0:
 					mm3 = distance * layer_thicknesses[layer_nr] * command.line_width * material_flow_layer_0
 				else:
@@ -156,6 +173,8 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 					min_y = min(min_y, y)
 					max_y = max(max_y, y)
 					gcode += " Y{y}".format(y=y)
+				if magic_spiralize:
+					gcode += " Z{z}".format(z=current_layer_length / total_layer_length * layer_height - layer_height + layer_heights[layer_nr])
 				if layer_nr == 0:
 					if speed_print_layer_0 * 60 != f:
 						f = speed_print_layer_0 * 60
@@ -165,7 +184,10 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 						f = speed_wall_0 * 60
 						gcode += " F{f}".format(f=f)
 				if delta_e != 0:
-					e += delta_e
+					if magic_spiralize and layer_nr == 0:
+						e += delta_e * current_layer_length / total_layer_length
+					else:
+						e += delta_e
 					gcode += " E{e}".format(e=e)
 				if not machine_center_is_zero:
 					path.append([x - machine_width / 2, -y + machine_depth / 2, command.line_width])
@@ -197,7 +219,7 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 						if layer_nr == 0:
 							feedrates[i - 1] = speed_print_layer_0
 						else:
-							feedrates[i - 1] = speed_print
+							feedrates[i - 1] = speed_wall_0
 						types[i - 1] = cura.LayerPolygon.LayerPolygon.Inset0Type
 						widths[i - 1] = point[2]
 						thicknesses[i - 1] = layer_height_0
