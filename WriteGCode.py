@@ -49,6 +49,8 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 	retraction_speed = extruder_stack.getProperty("retraction_retract_speed", "value")
 	unretraction_speed = extruder_stack.getProperty("retraction_prime_speed", "value")
 	retraction_distance = extruder_stack.getProperty("retraction_amount", "value")
+	material_bed_temperature = extruder_stack.getProperty("material_bed_temperature", "value")
+	material_print_temperature = extruder_stack.getProperty("material_print_temperature", "value")
 
 	path = []
 	gcodes = []
@@ -79,6 +81,9 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 	commands = list(commands)
 	for layer_nr in range(num_layers):
 		gcodes.append("G0 Z{z}".format(z=layer_heights[layer_nr]))
+		if layer_nr == 1:
+			gcodes.append("M104 S{temperature}".format(temperature=material_print_temperature))
+			gcodes.append("M140 S{temperature}".format(temperature=material_bed_temperature))
 		builder.addLayer(layer_nr)
 		layer = builder.getLayer(layer_nr)
 		builder.setLayerHeight(layer_nr, layer_heights[layer_nr])
