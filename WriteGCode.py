@@ -94,7 +94,8 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 	builder = cura.LayerDataBuilder.LayerDataBuilder()
 
 	for layer_nr in range(num_layers):
-		gcodes.append("G0 Z{z}".format(z=layer_heights[layer_nr]))
+		if not magic_spiralize:
+			gcodes.append("G0 Z{z}".format(z=layer_heights[layer_nr]))
 		if layer_nr == 1:
 			gcodes.append("M104 S{temperature}".format(temperature=material_print_temperature))
 			gcodes.append("M140 S{temperature}".format(temperature=material_bed_temperature))
