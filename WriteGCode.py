@@ -94,7 +94,7 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 
 	for layer_nr in range(num_layers):
 		if not magic_spiralize:
-			gcodes.append("G0 Z{z}".format(z=layer_heights[layer_nr]))
+			gcodes.append("G0 Z{z:.6f}".format(z=layer_heights[layer_nr]))
 		if layer_nr == 1:
 			gcodes.append("M104 S{temperature}".format(temperature=material_print_temperature))
 			gcodes.append("M140 S{temperature}".format(temperature=material_bed_temperature))
@@ -118,27 +118,27 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 
 				gcode = ""
 				if not is_retracted and retraction_enable:
-					gcode += "G0 F{speed} E{e}\n".format(speed=retraction_speed * 60, e=e - retraction_distance)
+					gcode += "G0 F{speed} E{e:.6f}\n".format(speed=retraction_speed * 60, e=e - retraction_distance)
 					is_retracted = True
 				gcode += "G0"
 				if command.x != x:
 					x = command.x
 					min_x = min(min_x, x)
 					max_x = max(max_x, x)
-					gcode += " X{x}".format(x=x)
+					gcode += " X{x:.6f}".format(x=x)
 				if command_y != y:
 					y = command_y
 					min_y = min(min_y, y)
 					max_y = max(max_y, y)
-					gcode += " Y{y}".format(y=y)
+					gcode += " Y{y:.6f}".format(y=y)
 				if layer_nr == 0:
 					if speed_travel_layer_0 * 60 != f:
 						f = speed_travel_layer_0 * 60
-						gcode += " F{f}".format(f=f)
+						gcode += " F{f:.6f}".format(f=f)
 				else:
 					if speed_travel * 60 != f:
 						f = speed_travel * 60
-						gcode += " F{f}".format(f=f)
+						gcode += " F{f:.6f}".format(f=f)
 				if not machine_center_is_zero:
 					path.append([x - machine_width / 2, -y + machine_depth / 2, 0])
 				else:
@@ -161,35 +161,35 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 
 				gcode = ""
 				if is_retracted:
-					gcode += "G0 F{speed} E{e}\n".format(speed=unretraction_speed * 60, e=e)
+					gcode += "G0 F{speed} E{e:.6f}\n".format(speed=unretraction_speed * 60, e=e)
 					is_retracted = False
 				gcode += "G1"
 				if command.x != x:
 					x = command.x
 					min_x = min(min_x, x)
 					max_x = max(max_x, x)
-					gcode += " X{x}".format(x=x)
+					gcode += " X{x:.6f}".format(x=x)
 				if command_y != y:
 					y = command_y
 					min_y = min(min_y, y)
 					max_y = max(max_y, y)
-					gcode += " Y{y}".format(y=y)
+					gcode += " Y{y:.6f}".format(y=y)
 				if magic_spiralize:
-					gcode += " Z{z}".format(z=current_layer_length / total_layer_length * layer_height - layer_height + layer_heights[layer_nr])
+					gcode += " Z{z:.6f}".format(z=current_layer_length / total_layer_length * layer_height - layer_height + layer_heights[layer_nr])
 				if layer_nr == 0:
 					if speed_print_layer_0 * 60 != f:
 						f = speed_print_layer_0 * 60
-						gcode += " F{f}".format(f=f)
+						gcode += " F{f:.6f}".format(f=f)
 				else:
 					if speed_wall_0 * 60 != f:
 						f = speed_wall_0 * 60
-						gcode += " F{f}".format(f=f)
+						gcode += " F{f:.6f}".format(f=f)
 				if delta_e != 0:
 					if magic_spiralize and layer_nr == 0:
 						e += delta_e * current_layer_length / total_layer_length
 					else:
 						e += delta_e
-					gcode += " E{e}".format(e=e)
+					gcode += " E{e:.6f}".format(e=e)
 				if not machine_center_is_zero:
 					path.append([x - machine_width / 2, -y + machine_depth / 2, command.line_width])
 				else:
