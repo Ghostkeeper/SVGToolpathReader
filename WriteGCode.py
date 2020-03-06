@@ -32,7 +32,8 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 	extruder_stack = cura.Settings.ExtruderManager.ExtruderManager.getInstance().getActiveExtruderStack()
 	layer_height = extruder_stack.getProperty("layer_height", "value")
 	layer_height_0 = extruder_stack.getProperty("layer_height_0", "value")
-	material_flow = extruder_stack.getProperty("material_flow_layer_0", "value") / 100
+	material_flow = extruder_stack.getProperty("material_flow", "value") / 100
+	material_flow_layer_0 = extruder_stack.getProperty("material_flow_layer_0", "value") / 100
 	material_diameter = extruder_stack.getProperty("material_diameter", "value")
 	machine_center_is_zero = extruder_stack.getProperty("machine_center_is_zero", "value") # Necessary to know if we need to offset the coordinates for layer view.
 	machine_gcode_flavor = extruder_stack.getProperty("machine_gcode_flavor", "value") # Necessary to track if we need to extrude volumetric or lengthwise.
@@ -40,8 +41,10 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 	machine_width = extruder_stack.getProperty("machine_width", "value")
 	machine_depth = extruder_stack.getProperty("machine_depth", "value")
 	is_volumetric = machine_gcode_flavor in {"UltiGCode", "RepRap (Volumetric)"}
-	speed_travel = extruder_stack.getProperty("speed_travel_layer_0", "value")
-	speed_print = extruder_stack.getProperty("speed_print_layer_0", "value")
+	speed_travel = extruder_stack.getProperty("speed_travel", "value")
+	speed_travel_layer_0 = extruder_stack.getProperty("speed_travel_layer_0", "value")
+	speed_print = extruder_stack.getProperty("speed_print", "value")
+	speed_print_layer_0 = extruder_stack.getProperty("speed_print_layer_0", "value")
 	retraction_enable = extruder_stack.getProperty("retraction_enable", "value")
 	retraction_speed = extruder_stack.getProperty("retraction_retract_speed", "value")
 	unretraction_speed = extruder_stack.getProperty("retraction_prime_speed", "value")
@@ -107,9 +110,14 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 					min_y = min(min_y, y)
 					max_y = max(max_y, y)
 					gcode += " Y{y}".format(y=y)
-				if speed_travel * 60 != f:
-					f = speed_travel * 60
-					gcode += " F{f}".format(f=f)
+				if layer_nr == 0:
+					if speed_travel_layer_0 * 60 != f:
+						f = speed_travel_layer_0 * 60
+						gcode += " F{f}".format(f=f)
+				else:
+					if speed_travel * 60 != f:
+						f = speed_travel * 60
+						gcode += " F{f}".format(f=f)
 				if not machine_center_is_zero:
 					path.append([x - machine_width / 2, -y + machine_depth / 2, 0])
 				else:
@@ -122,7 +130,10 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 					command_y = -command.y
 
 				distance = math.sqrt((command.x - x) * (command.x - x) + (command_y - y) * (command_y - y))
-				mm3 = distance * layer_thicknesses[layer_nr] * command.line_width * material_flow
+				if layer_nr == 0:
+					mm3 = distance * layer_thicknesses[layer_nr] * command.line_width * material_flow_layer_0
+				else:
+					mm3 = distance * layer_thicknesses[layer_nr] * command.line_width * material_flow
 				delta_e = mm3 if is_volumetric else (mm3 / (math.pi * material_diameter * material_diameter / 4))
 
 				gcode = ""
@@ -140,9 +151,14 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 					min_y = min(min_y, y)
 					max_y = max(max_y, y)
 					gcode += " Y{y}".format(y=y)
-				if speed_print * 60 != f:
-					f = speed_print * 60
-					gcode += " F{f}".format(f=f)
+				if layer_nr == 0:
+					if speed_print_layer_0 * 60 != f:
+						f = speed_print_layer_0 * 60
+						gcode += " F{f}".format(f=f)
+				else:
+					if speed_print * 60 != f:
+						f = speed_print * 60
+						gcode += " F{f}".format(f=f)
 				if delta_e != 0:
 					e += delta_e
 					gcode += " E{e}".format(e=e)
@@ -162,7 +178,10 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 				coordinates[i, :] = [point[0], layer_heights[layer_nr], point[1]]
 				if i > 0:
 					if point[2] == 0:
-						feedrates[i - 1] = speed_travel
+						if layer_nr == 0:
+							feedrates[i - 1] = speed_travel_layer_0
+						else:
+							feedrates[i - 1] = speed_travel
 						if retraction_enable:
 							types[i - 1] = cura.LayerPolygon.LayerPolygon.MoveRetractionType
 						else:
@@ -170,7 +189,10 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 						widths[i - 1] = 0.1
 						thicknesses[i - 1] = 0.0
 					else:
-						feedrates[i - 1] = speed_print
+						if layer_nr == 0:
+							feedrates[i - 1] = speed_print_layer_0
+						else:
+							feedrates[i - 1] = speed_print
 						types[i - 1] = cura.LayerPolygon.LayerPolygon.Inset0Type
 						widths[i - 1] = point[2]
 						thicknesses[i - 1] = layer_height_0
