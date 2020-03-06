@@ -43,7 +43,7 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 	is_volumetric = machine_gcode_flavor in {"UltiGCode", "RepRap (Volumetric)"}
 	speed_travel = extruder_stack.getProperty("speed_travel", "value")
 	speed_travel_layer_0 = extruder_stack.getProperty("speed_travel_layer_0", "value")
-	speed_print = extruder_stack.getProperty("speed_print", "value")
+	speed_wall_0 = extruder_stack.getProperty("speed_wall_0", "value")
 	speed_print_layer_0 = extruder_stack.getProperty("speed_print_layer_0", "value")
 	retraction_enable = extruder_stack.getProperty("retraction_enable", "value")
 	retraction_speed = extruder_stack.getProperty("retraction_retract_speed", "value")
@@ -161,8 +161,8 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 						f = speed_print_layer_0 * 60
 						gcode += " F{f}".format(f=f)
 				else:
-					if speed_print * 60 != f:
-						f = speed_print * 60
+					if speed_wall_0 * 60 != f:
+						f = speed_wall_0 * 60
 						gcode += " F{f}".format(f=f)
 				if delta_e != 0:
 					e += delta_e
