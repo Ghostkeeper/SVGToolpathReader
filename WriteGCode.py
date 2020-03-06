@@ -73,15 +73,15 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 
 	builder = cura.LayerDataBuilder.LayerDataBuilder()
 
-	layer_nr = 0
-	for layer_commands in itertools.tee(commands, num_layers):
+	commands = list(commands)
+	for layer_nr in range(num_layers):
 		gcodes.append("G0 Z{z}".format(z=layer_heights[layer_nr]))
 		builder.addLayer(layer_nr)
 		layer = builder.getLayer(layer_nr)
 		builder.setLayerHeight(layer_nr, layer_heights[layer_nr])
 		builder.setLayerThickness(layer_nr, layer_thicknesses[layer_nr])
 
-		for command in layer_commands:
+		for command in commands:
 			gcode = ";Unknown command of type {typename}!".format(typename=command.__class__.__name__)
 			if isinstance(command, TravelCommand.TravelCommand):
 				# Since SVG has positive Y going down but g-code has positive Y going up, we need to invert the Y axis.
