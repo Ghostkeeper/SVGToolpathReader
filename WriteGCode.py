@@ -103,6 +103,10 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 		builder.setLayerHeight(layer_nr, layer_heights[layer_nr])
 		builder.setLayerThickness(layer_nr, layer_thicknesses[layer_nr])
 		path = []
+		if not machine_center_is_zero:
+			path.append([x - machine_width / 2, -y + machine_depth / 2, 0])
+		else:
+			path.append([x, -y, 0])
 
 		current_layer_length = 0  # How much we've extruded this layer (tracked for spiralise).
 		for command in commands:
