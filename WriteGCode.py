@@ -19,6 +19,33 @@ import typing
 from . import ExtrudeCommand # To differentiate between the command types.
 from . import TravelCommand # To differentiate between the command types.
 
+def get_distance(point1, point2):
+	return math.sqrt((point2.x - point1.x)**2 + (point2.y - point1.y)**2)
+
+def sort_commands(commands):
+	# Split commands into extrude segments (split by TravelCommand)
+	segments = []
+	for command in commands:
+		if isinstance(command, TravelCommand.TravelCommand):
+			segments.append([])
+		segments[-1].append(command)
+
+	# Sort segments by minimum travel distance (to both start + end of next segment)
+	segments_sorted = [segments.pop(0)]
+	while(segments):
+		last_command = segments_sorted[-1][-1]
+		distances = [min(get_distance(last_command, segment[0]), get_distance(last_command, segment[-1])) for segment in segments]
+		index = distances.index(min(distances))
+		segment = segments.pop(index)
+		if(get_distance(last_command, segment[0]) > get_distance(last_command, segment[-1])):
+			# Dirty way to reverse the segment
+			segment = list(reversed(segment))
+			segment[-1] = ExtrudeCommand.ExtrudeCommand(segment[-1].x, segment[-1].y, segment[0].line_width)
+			segment[0] = TravelCommand.TravelCommand(segment[0].x, segment[0].y)
+		segments_sorted.append(segment)
+
+	return sum(segments_sorted, [])
+
 def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBuilder]:
 	"""
 	Converts a list of commands into g-code.
@@ -54,7 +81,7 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 	magic_spiralize = extruder_stack.getProperty("magic_spiralize", "value") and extruder_stack.getProperty("smooth_spiralized_contours", "value")
 
 	gcodes = []
-	commands = list(commands)
+	commands = sort_commands(commands)
 
 	x = 0
 	y = 0
