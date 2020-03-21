@@ -120,7 +120,7 @@ foreach(sdk_version ${SVGTOOLPATHREADER_SUPPORTED_SDKS})
 		files
 	)
 	add_custom_target(pack${sdk_version}
-		COMMAND "${CMAKE_COMMAND}" -E tar cfv ../SVGToolpathReader${sdk_version}.curapackage --format=zip ${packaged_files}
+		COMMAND "${CMAKE_COMMAND}" -E tar cfv ../SVGToolpathReader${SVGTOOLPATHREADER_VERSION_MAJOR}.${SVGTOOLPATHREADER_VERSION_MINOR}.${SVGTOOLPATHREADER_VERSION_PATCH}-sdk${sdk_version}.curapackage --format=zip ${packaged_files}
 		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/pack${sdk_version}
 	)
 	add_dependencies(pack pack${sdk_version})
