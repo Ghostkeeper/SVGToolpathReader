@@ -18,6 +18,8 @@ set(SVGTOOLPATHREADER_SUPPORTED_SDKS "5.0.0;6.0.0;7.0.0" CACHE STRING "List of s
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/plugin.json.in" plugin.json)
 set(installed_files
 	__init__.py
+	Configuration.py
+	ConfigurationDialogue.qml
 	ExtrudeCommand.py
 	icon.svg
 	LICENSE.md
