@@ -99,7 +99,9 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 
 	gcodes = []
 	commands = sort_commands(commands)
-	commands = center_commands(commands, machine_width, machine_depth)
+
+	if(config.centerEnabled):
+		commands = center_commands(commands, machine_width, machine_depth)
 
 	x = 0
 	y = 0
