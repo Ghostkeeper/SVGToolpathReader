@@ -282,7 +282,7 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 
 		layer_nr += 1
 
-	machine_start_gcode = get_start_gcode(min_x, min_y, max_x, max_y)
+	machine_start_gcode = get_start_gcode(config, min_x, min_y, max_x, max_y)
 	gcodes = [machine_start_gcode] + gcodes
 
 	gcodes.append("M140 S0") #Cool everything down.
@@ -292,7 +292,7 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 
 	return "\n".join(gcodes), builder
 
-def get_start_gcode(min_x, min_y, max_x, max_y) -> str:
+def get_start_gcode(config, min_x, min_y, max_x, max_y) -> str:
 	"""
 	Returns the proper starting g-code for the current printer.
 
@@ -379,6 +379,8 @@ def get_start_gcode(min_x, min_y, max_x, max_y) -> str:
 	result += "T" + str(extruder_number) + "\n" #Correct extruder.
 	result += "M82\n" #Absolute extrusion mode only.
 	result += "G92 E0\n" #Reset E, wherever it ended up in the previous print is now 0.
+	if config.pauseEnabled:
+		result += "M0 \n" #Stop or Unconditional stop
 	result += "M109 S{print_temperature}\n".format(print_temperature=material_print_temperature_layer_0) #Heat extruder.
 	result += "M190 S{bed_temperature}\n".format(bed_temperature=material_bed_temperature_layer_0) #Heat build plate.
 	if prime_blob_enable: #Prime, if necessary.

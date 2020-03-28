@@ -11,7 +11,7 @@ import UM 1.1 as UM
 
 UM.Dialog {
 	id: svg_reader_config_dialogue
-	minimumWidth: 350 * screenScaleFactor
+	minimumWidth: 550 * screenScaleFactor
 	minimumHeight: 100 * screenScaleFactor
 
 	title: "Load SVG image as toolpath"
@@ -65,6 +65,29 @@ UM.Dialog {
 	        onClicked: manager.centerEnabled = checked
 		}
 	}
+
+	Item { //Row for pause Enabled
+		id: pauseRow
+
+		anchors {
+			top: centerRow.bottom
+			left: parent.left
+			right: parent.right
+		}
+		height: childrenRect.height
+
+		Label {
+			text: "Pause before start"
+			anchors.verticalCenter: heightField.verticalCenter
+		}
+		CheckBox {
+			id: togglePauseEnabled
+			anchors.right: parent.right
+	        checked: manager.pauseEnabled
+	        onClicked: manager.pauseEnabled = checked
+		}
+	}
+
 
 	Item { //Row for buttons.
 		anchors {

@@ -42,6 +42,7 @@ class Configuration(PyQt5.QtCore.QObject):
 		self._show_ui_trigger.connect(self._prompt)
 		self._height = 0.1
 		self._center_enabled = False
+		self._pause_enabled = False
 
 	def prompt(self, file_name) -> UM.Mesh.MeshReader.MeshReader.PreReadResult:
 		"""
@@ -114,6 +115,18 @@ class Configuration(PyQt5.QtCore.QObject):
 	@PyQt5.QtCore.pyqtProperty(bool, notify=centerEnabledChanged, fset=setCenterEnabled)
 	def centerEnabled(self):
 		return self._center_enabled
+
+	pauseEnabledChanged = PyQt5.QtCore.pyqtSignal()
+
+	@PyQt5.QtCore.pyqtSlot(int)
+	def setPauseEnabled(self, pause_enabled):
+		if pause_enabled != self._pause_enabled:
+			self._pause_enabled = pause_enabled
+			self.pauseEnabledChanged.emit()
+
+	@PyQt5.QtCore.pyqtProperty(bool, notify=pauseEnabledChanged, fset=setPauseEnabled)
+	def pauseEnabled(self):
+		return self._pause_enabled
 
 	def _prompt(self) -> UM.Mesh.MeshReader.MeshReader.PreReadResult:
 		"""
