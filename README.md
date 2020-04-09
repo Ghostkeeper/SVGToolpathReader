@@ -26,6 +26,7 @@ You can install this plug-in in one of four ways.
 Usage
 -----
 To use this plug-in, simply load an SVG file. There are a couple of things you might want to watch out for though.
+* This plug-in reads your file in as if it's a g-code file. It doesn't load a model and lets Cura slice that model, but produces g-code directly. This means that it doesn't suffer from the same issues as Cura's slicing does. This was originally why this plug-in was developed, as a way to find out whether a print problem was caused by CuraEngine or by the printer hardware.
 * Not all elements are supported. See the SVG Support header below for a list of what is supported.
 * Curves will get sampled in segments of the Maximum Resolution. That may be too high of a sample rate for your printer to cope with.
 * Unless your printer has the origin in the centre, the coordinate origin is in the back left corner of the printer. It is not the front left corner, like with g-code. This makes the image render in proper orientation. Coordinates are in millimetres.
