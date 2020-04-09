@@ -144,7 +144,7 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 					command_y = machine_depth - command.y
 				else:
 					command_y = -command.y
-				if command.x == x and command_y == y:
+				if abs(command.x - x) < 0.001 and abs(command_y - y) < 0.001:
 					continue  # Travel move wouldn't have any effect.
 
 				gcode = ""
