@@ -1,5 +1,5 @@
 #Cura plug-in to read SVG files as toolpaths.
-#Copyright (C) 2019 Ghostkeeper
+#Copyright (C) 2020 Ghostkeeper
 #This plug-in is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 #This plug-in is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for details.
 #You should have received a copy of the GNU Affero General Public License along with this plug-in. If not, see <https://gnu.org/licenses/>.
@@ -341,7 +341,7 @@ class Parser:
 			if name == "matrix":
 				if len(values) != 6:
 					continue #Invalid: Needs 6 arguments.
-				transformation = numpy.matmul(transformation, numpy.array(((values[0], values[1], values[2]), (values[3], values[4], values[5]), (0, 0, 1))))
+				transformation = numpy.matmul(transformation, numpy.array(((values[0], values[2], values[4]), (values[1], values[3], values[5]), (0, 0, 1))))
 			elif name == "translate":
 				if len(values) == 1:
 					values.append(0)
