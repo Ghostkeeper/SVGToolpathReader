@@ -73,6 +73,8 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 	speed_wall_0 = extruder_stack.getProperty("speed_wall_0", "value")
 	speed_print_layer_0 = extruder_stack.getProperty("speed_print_layer_0", "value")
 	retraction_enable = extruder_stack.getProperty("retraction_enable", "value")
+	retraction_hop = extruder_stack.getProperty("retraction_hop", "value")
+	retraction_hop_enabled = extruder_stack.getProperty("retraction_hop_enabled", "value")
 	retraction_speed = extruder_stack.getProperty("retraction_retract_speed", "value")
 	unretraction_speed = extruder_stack.getProperty("retraction_prime_speed", "value")
 	retraction_distance = extruder_stack.getProperty("retraction_amount", "value")
@@ -149,7 +151,10 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 
 				gcode = ""
 				if not is_retracted and retraction_enable:
-					gcode += "G0 F{speed} E{e:.6f}\n".format(speed=retraction_speed * 60, e=e - retraction_distance)
+					gcode += "G0 F{speed} E{e:.6f}".format(speed=retraction_speed * 60, e=e - retraction_distance)
+					if retraction_hop_enabled:
+						gcode += " Z{z:.6f}".format(z=layer_heights[layer_nr] + retraction_hop)
+					gcode += " (RETRACT)\n"
 					is_retracted = True
 				gcode += "G0"
 				if command.x != x:
@@ -192,7 +197,10 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 
 				gcode = ""
 				if is_retracted:
-					gcode += "G0 F{speed} E{e:.6f}\n".format(speed=unretraction_speed * 60, e=e)
+					gcode += "G0 F{speed} E{e:.6f}".format(speed=unretraction_speed * 60, e=e)
+					if retraction_hop_enabled:
+						gcode += " Z{z:.6f}".format(z=layer_heights[layer_nr])
+					gcode += " (UN-RETRACT)\n"
 					is_retracted = False
 				gcode += "G1"
 				if command.x != x:
