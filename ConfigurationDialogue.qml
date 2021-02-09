@@ -20,6 +20,8 @@ UM.Dialog {
 	onAccepted: manager.confirm()
 
 	Item { //Row for height (mm).
+		id: heightRow
+
 		anchors {
 			left: parent.left
 			right: parent.right
@@ -39,6 +41,28 @@ UM.Dialog {
 			}
 			text: manager.height
 			onEditingFinished: manager.height = text
+		}
+	}
+
+	Item { //Row for center Enabled
+		id: centerRow
+
+		anchors {
+			top: heightRow.bottom
+			left: parent.left
+			right: parent.right
+		}
+		height: childrenRect.height
+
+		Label {
+			text: "Center on buildplate"
+			anchors.verticalCenter: heightField.verticalCenter
+		}
+		CheckBox {
+			id: toggleCenterEnabled
+			anchors.right: parent.right
+	        checked: manager.centerEnabled
+	        onClicked: manager.centerEnabled = checked
 		}
 	}
 

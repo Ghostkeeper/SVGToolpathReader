@@ -41,6 +41,7 @@ class Configuration(PyQt5.QtCore.QObject):
 		self._status = UM.Mesh.MeshReader.MeshReader.PreReadResult.failed
 		self._show_ui_trigger.connect(self._prompt)
 		self._height = 0.1
+		self._center_enabled = False
 
 	def prompt(self, file_name) -> UM.Mesh.MeshReader.MeshReader.PreReadResult:
 		"""
@@ -101,6 +102,18 @@ class Configuration(PyQt5.QtCore.QObject):
 	@PyQt5.QtCore.pyqtProperty(float, notify=heightChanged, fset=setHeight)
 	def height(self):
 		return self._height
+
+	centerEnabledChanged = PyQt5.QtCore.pyqtSignal()
+
+	@PyQt5.QtCore.pyqtSlot(int)
+	def setCenterEnabled(self, center_enabled):
+		if center_enabled != self._center_enabled:
+			self._center_enabled = center_enabled
+			self.centerEnabledChanged.emit()
+
+	@PyQt5.QtCore.pyqtProperty(bool, notify=centerEnabledChanged, fset=setCenterEnabled)
+	def centerEnabled(self):
+		return self._center_enabled
 
 	def _prompt(self) -> UM.Mesh.MeshReader.MeshReader.PreReadResult:
 		"""
