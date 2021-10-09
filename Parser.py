@@ -1049,7 +1049,7 @@ class Parser:
 		previous_cubic_y = 0
 
 		#Since all commands in the D attribute are single-character letters, we can split the thing on alpha characters and process each command separately.
-		commands = re.findall(r"[A-Za-z][^A-Za-z]*", d)
+		commands = re.findall(r"[A-DF-Za-df-z][^A-DF-Za-df-z]*", d)
 		for command in commands:
 			command = command.strip()
 			command_name = command[0]
