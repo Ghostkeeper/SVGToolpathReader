@@ -1,3 +1,9 @@
+1.2.1 - Bug Fixes
+====
+* Fixed sometimes not skipping retractions for 0-length travels due to rounding errors.
+* Fixed crash if the user clicks the buttons of the dialog multiple times in quick succession.
+* Fixed parsing of paths with scientific notation in the parameters.
+
 1.2.0 - Getting Taller
 ====
 This update adds support for multi-layer prints.
