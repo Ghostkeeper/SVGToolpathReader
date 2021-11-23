@@ -9,6 +9,7 @@ import PyQt5.QtCore  # To display an interface to the user.
 import threading  # To wait for the user to close the UI.
 import UM.Application
 import UM.Mesh.MeshReader  # To return the correct prompt response for the preread.
+import UM.Message  # To show errors.
 
 class Configuration(PyQt5.QtCore.QObject):
 	"""
@@ -64,6 +65,10 @@ class Configuration(PyQt5.QtCore.QObject):
 		"""
 		application = UM.Application.Application.getInstance()
 
+		if application.getGlobalContainerStack() is None:
+			message = UM.Message.Message("Unable to load in SVG files before adding a printer. Please add a printer first")
+			message.show()
+			return
 		self._height = application.getGlobalContainerStack().getProperty("layer_height_0", "value")  # First time showing this dialogue, use one layer as height.
 		qml_path = os.path.join(application.getPluginRegistry().getPluginPath("SVGToolpathReader"), "ConfigurationDialogue.qml")
 		self.ui_element = application.createQmlComponent(qml_path, {"manager": self})
