@@ -149,7 +149,7 @@ class Parser:
 
 		return result
 
-	def convert_dasharray(self, dasharray) -> typing.List[float]:
+	def convert_dasharray(self, dasharray) -> None:
 		"""
 		Parses a stroke-dasharray property out of CSS.
 
@@ -160,6 +160,10 @@ class Parser:
 		self.dasharray_length for re-use.
 		:param dasharray: A stroke-dasharray property value.
 		"""
+		if dasharray == "none":
+			self.dasharray = []
+			self.dasharray_length = 0
+			return
 		dasharray = dasharray.replace(",", " ")
 		length_list = dasharray.split()
 		self.dasharray = []
