@@ -1436,6 +1436,9 @@ class Parser:
 		:param element: The Text element.
 		:return: A sequence of commands necessary to write the text.
 		"""
+		if element.text is None:  # Could have sub-elements, like tspan. These should be handled separately (if supported).
+			return
+
 		x = self.convert_length(element.attrib.get("x", "0"))
 		y = self.convert_length(element.attrib.get("y", "0"), vertical=True)
 		x += self.convert_length(element.attrib.get("dx", "0"))
