@@ -121,7 +121,7 @@ class Parser:
 		is_length = lambda s: re.fullmatch(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?(cap|ch|em|ex|ic|lh|rem|rlh|vh|vw|vi|vb|vmin|vmax|px|cm|mm|Q|in|pc|pt|%)?", s)
 		attribute_validate = { #For each supported attribute, a predicate to validate whether it is correctly formed.
 			"font-family": tautology,
-			"font-weight": is_float,
+			"font-weight": lambda s: (is_float(s) and 1 <= float(s) <= 1000) or (s in {"normal", "bold"}),
 			"font-size": is_length,
 			"font-style": lambda s: s in {"normal", "italic", "oblique", "initial"}, #Don't include "inherit" since we want it to inherit then as if not set.
 			"stroke-dasharray": lambda s: s == "none" or is_list_of_lengths(s),
@@ -277,6 +277,23 @@ class Parser:
 		if self.system_fonts:
 			return next(iter(self.system_fonts)) #Take an arbitrary font that is available. Running out of options, here!
 		return "Noto Sans" #Default font of Cura. Hopefully that gets installed somewhere.
+
+	def convert_font_weight(self, font_weight, parent_weight) -> int:
+		"""
+		Parses a font weight, converting it to a numerical weight to be used by freetype.
+		:param font_weight: The font-weight property from CSS.
+		:param parent_weight: The font-weight of the parent property.
+		:return: A weight for the font.
+		"""
+		if font_weight == "normal":
+			return 400
+		if font_weight == "bold":
+			return 700
+
+		try:
+			return int(float(font_weight))
+		except ValueError:
+			return parent_weight  # Default font weight when it doesn't parse.
 
 	def convert_points(self, points) -> typing.Generator[typing.Tuple[float, float], None, None]:
 		"""
@@ -1445,7 +1462,7 @@ class Parser:
 		#Select the correct font based on name, italics and boldness.
 		font_name = self.convert_font_family(element.attrib.get("font-family", "serif").lower())
 		font_style = element.attrib.get("font-style", "normal")
-		font_weight = self.convert_float(element.attrib, "font-weight", 400)
+		font_weight = self.convert_font_weight(element.attrib.get("font-weight", 400))
 		is_italic = font_style == "italic"
 		is_oblique = font_style == "oblique"
 		is_bold = font_weight >= 550 #Freetype doesn't support getting the font's weight or adjusting it.
