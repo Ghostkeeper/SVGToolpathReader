@@ -82,7 +82,7 @@ class Configuration(QObject):
 		else:
 			self.ui_element.setFlags(self.ui_element.flags() & ~Qt.WindowCloseButtonHint & ~Qt.WindowMinimizeButtonHint & ~Qt.WindowMaximizeButtonHint)
 
-	pyqtSlot()
+	@pyqtSlot()
 	def confirm(self):
 		"""
 		Triggered when the user clicks the OK button in the interface.
@@ -95,7 +95,7 @@ class Configuration(QObject):
 		self._ui_lock.acquire(blocking=False)
 		self._ui_lock.release()
 
-	pyqtSlot()
+	@pyqtSlot()
 	def cancel(self):
 		"""
 		Triggered when the user closes the dialogue rather than clicking OK.
@@ -107,13 +107,13 @@ class Configuration(QObject):
 
 	heightChanged = pyqtSignal()
 
-	pyqtSlot(int)
+	@pyqtSlot(int)
 	def setHeight(self, height):
 		if height != self._height:
 			self._height = height
 			self.heightChanged.emit()
 
-	pyqtProperty(float, notify=heightChanged, fset=setHeight)
+	@pyqtProperty(float, notify=heightChanged, fset=setHeight)
 	def height(self):
 		return self._height
 
