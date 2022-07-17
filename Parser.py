@@ -1,5 +1,5 @@
 #Cura plug-in to read SVG files as toolpaths.
-#Copyright (C) 2020 Ghostkeeper
+#Copyright (C) 2022 Ghostkeeper
 #This plug-in is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 #This plug-in is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for details.
 #You should have received a copy of the GNU Affero General Public License along with this plug-in. If not, see <https://gnu.org/licenses/>.
@@ -124,7 +124,7 @@ class Parser:
 			"font-weight": is_float,
 			"font-size": is_length,
 			"font-style": lambda s: s in {"normal", "italic", "oblique", "initial"}, #Don't include "inherit" since we want it to inherit then as if not set.
-			"stroke-dasharray": is_list_of_lengths,
+			"stroke-dasharray": lambda s: s == "none" or is_list_of_lengths(s),
 			"stroke-dashoffset": is_length,
 			"stroke-width": is_length,
 			"text-decoration": tautology, #Not going to do any sort of parsing on this one since it has all the colours and that's just way too complex.
