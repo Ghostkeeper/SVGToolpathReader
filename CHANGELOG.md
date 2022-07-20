@@ -1,3 +1,11 @@
+1.2.2 - Bug Fixes
+====
+* The plug-in now loads properly in Cura 5.0 and 5.1.
+* Fixed crash when loading an SVG with a text element that doesn't have text.
+* Fixed font-weight with text values, like 'normal' and 'bold'.
+* Fixed dash-array having value 'none'.
+* If loading an SVG file via the command line before a printer is added, an error is shown to the user now.
+
 1.2.1 - Bug Fixes
 ====
 * Fixed sometimes not skipping retractions for 0-length travels due to rounding errors.
