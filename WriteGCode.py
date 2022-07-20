@@ -46,6 +46,23 @@ def sort_commands(commands):
 
 	return sum(segments_sorted, [])
 
+def center_commands(commands, machine_width, machine_depth):
+	# Calculate bounding box
+	min_x = min(command.x for command in commands)
+	max_x = max(command.x for command in commands)
+	min_y = min(command.y for command in commands)
+	max_y = max(command.y for command in commands)
+
+	# Calculate delta relative to build plate dimensions
+	delta_x = (machine_width - (min_x + max_x)) / 2
+	delta_y = (machine_depth - (min_y + max_y)) / 2
+
+	for command in commands:
+		command.x += delta_x
+		command.y += delta_y
+
+	return commands
+
 def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.LayerDataBuilder]:
 	"""
 	Converts a list of commands into g-code.
@@ -82,6 +99,9 @@ def write_gcode(config, commands) -> typing.Tuple[str, cura.LayerDataBuilder.Lay
 
 	gcodes = []
 	commands = sort_commands(commands)
+
+	if(config.centerEnabled):
+		commands = center_commands(commands, machine_width, machine_depth)
 
 	x = 0
 	y = 0
